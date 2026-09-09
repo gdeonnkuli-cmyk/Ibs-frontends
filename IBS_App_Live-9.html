@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>IBS — Immo-Bail Solution</title>
+<!-- PWA : actif uniquement si ce fichier est hébergé en ligne (http/https), pas depuis un fichier local -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0D1B3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IBS">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+<style>
+:root{
+  --N:#0D1B3E; --N2:#1B2C5C; --G:#C9963A; --G2:#E4C585;
+  --IV:#FAF6EE; --IVD:#F1E9D8; --TX:#22283B; --TX2:#5B6072; --TX3:#8891B5;
+  --LN:#E4DDC9; --GR:#2F6B4A; --GRD:#E5F0EA; --RD:#B5502F; --RDD:#F6E7DE;
+  --fd:'Georgia',serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;background:var(--IVD);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--TX);}
+#app{max-width:460px;margin:0 auto;min-height:100vh;background:var(--IV);position:relative;padding-bottom:78px;}
+
+/* Topbar */
+.tb{background:var(--N);color:#fff;padding:16px 18px 14px;display:flex;align-items:center;justify-content:space-between;}
+.tb-logo{font-family:var(--fd);font-weight:800;font-size:17px;color:var(--G);}
+.tb-logo-img{height:34px;width:34px;border-radius:8px;display:block;}
+.tb-role{font-size:11px;color:var(--TX3);background:rgba(255,255,255,.08);padding:4px 10px;border-radius:20px;}
+.tb-back{color:#fff;font-size:20px;cursor:pointer;background:none;border:none;padding:4px 8px;}
+
+.scr{padding:16px 16px 24px;}
+.h1{font-family:var(--fd);font-size:20px;font-weight:800;color:var(--N);margin:4px 0 4px;}
+.sub{font-size:12.5px;color:var(--TX2);margin-bottom:16px;line-height:1.5;}
+.beta{background:var(--G2);color:var(--N);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;margin-bottom:10px;}
+
+/* forms */
+.fg{margin-bottom:13px;}
+.fl{display:block;font-size:11.5px;font-weight:700;color:var(--N);margin-bottom:5px;}
+.fi{width:100%;padding:11px 12px;border-radius:11px;border:1.5px solid var(--LN);background:#fff;font-size:14px;color:var(--TX);font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--G);}
+select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235B6072'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+.fhelp{font-size:10.5px;color:var(--TX3);margin-top:4px;}
+.chip-row{display:flex;gap:8px;margin-bottom:13px;}
+.chip{flex:1;border:1.5px solid var(--LN);background:#fff;border-radius:11px;padding:12px 8px;text-align:center;cursor:pointer;}
+.chip.on{border-color:var(--G);background:var(--IVD);}
+.chip-ic{font-size:20px;}
+.chip-tt{font-size:12px;font-weight:700;color:var(--N);margin-top:4px;}
+
+/* buttons */
+.btn{display:block;width:100%;padding:13px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;text-align:center;}
+.btn-g{background:linear-gradient(135deg,var(--G),var(--G2));color:var(--N);}
+.btn-n{background:var(--N);color:#fff;}
+.btn-o{background:#fff;border:1.5px solid var(--LN);color:var(--TX2);}
+.btn-r{background:var(--RD);color:#fff;}
+.btn-sm{padding:8px 12px;font-size:12px;border-radius:9px;width:auto;display:inline-block;}
+.btn:disabled{opacity:.45;}
+.lnk{color:var(--G);font-weight:700;text-decoration:none;font-size:12.5px;cursor:pointer;}
+
+/* cards */
+.card{background:#fff;border:1px solid var(--LN);border-radius:14px;padding:14px;margin-bottom:12px;}
+.card-tt{font-family:var(--fd);font-weight:800;font-size:14.5px;color:var(--N);margin-bottom:2px;}
+.card-sb{font-size:11.5px;color:var(--TX2);}
+.row{display:flex;justify-content:space-between;align-items:center;}
+.bdg{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.bdg-gr{background:var(--GRD);color:var(--GR);}
+.bdg-or{background:#F6E7DE;color:#9A4B22;}
+.bdg-rd{background:var(--RDD);color:var(--RD);}
+.st{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(13,27,62,.06);font-size:12.5px;}
+.st:last-child{border-bottom:none;}
+.st-k{color:var(--TX2);}
+.st-v{font-weight:700;color:var(--N);}
+
+/* nav */
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:460px;margin:0 auto;background:#fff;border-top:1px solid var(--LN);display:flex;padding:8px 4px;}
+.nav-i{flex:1;text-align:center;padding:6px 2px;cursor:pointer;color:var(--TX3);font-size:9.5px;}
+.nav-i.on{color:var(--N);font-weight:700;}
+.nav-ic{font-size:18px;display:block;margin-bottom:2px;}
+
+/* toast */
+.toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--N);color:#fff;padding:11px 18px;border-radius:30px;font-size:12.5px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:200;display:flex;gap:8px;align-items:center;max-width:90%;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* otp */
+.otps{display:flex;justify-content:center;gap:8px;margin:18px 0 8px;}
+.otp{width:42px;height:50px;border:1.5px solid var(--LN);border-radius:10px;text-align:center;line-height:50px;font-size:19px;font-weight:800;color:var(--N);background:#fff;}
+.otp.f{border-color:var(--G);}
+.kpd{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin:14px auto;}
+.kpd button{padding:14px;border-radius:11px;border:1px solid var(--LN);background:#fff;font-size:17px;font-weight:700;color:var(--N);}
+.kemp{visibility:hidden;}
+
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.center{text-align:center;padding:40px 20px;}
+.muted{color:var(--TX3);font-size:12px;}
+.chk{display:flex;gap:9px;align-items:flex-start;margin-bottom:11px;cursor:pointer;}
+.chk-box{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--LN);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;margin-top:1px;}
+.chk.on .chk-box{background:var(--G);border-color:var(--G);color:#fff;font-weight:900;}
+.chk-txt{font-size:11.5px;color:var(--TX2);line-height:1.5;}
+
+/* offer card v2 — spec chips + price block */
+.offer-card{cursor:pointer;}
+.offer-card .row{align-items:flex-start;gap:8px;}
+.offer-card .card-sb{margin-top:2px;}
+.spec-row{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0;}
+.spec-chip{display:inline-flex;align-items:center;gap:4px;background:var(--IVD);border:1px solid var(--LN);padding:4px 9px 4px 7px;border-radius:8px;font-size:11px;color:var(--N);font-weight:700;}
+.spec-chip .ic{font-size:12px;}
+.price-block{display:flex;background:var(--N);border-radius:10px;overflow:hidden;margin-top:10px;}
+.price-cell{flex:1;padding:9px 8px;text-align:center;border-right:1px solid rgba(255,255,255,.12);}
+.price-cell:last-child{border-right:none;}
+.price-cell .plbl{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#B9C0D6;font-weight:700;}
+.price-cell .pval{font-size:13px;font-weight:800;color:#fff;margin-top:2px;}
+.price-cell.accent{background:rgba(201,150,58,.22);}
+.price-cell.accent .pval{color:var(--G2);}
+.offer-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11px;color:var(--TX2);}
+.avail{display:inline-flex;align-items:center;gap:5px;font-weight:700;}
+.avail .d{width:6px;height:6px;border-radius:50%;background:var(--GR);display:inline-block;}
+.eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px;}
+.eq-item{display:flex;align-items:center;gap:8px;border:1.5px solid var(--LN);background:#fff;border-radius:11px;padding:10px 10px;cursor:pointer;font-size:12.5px;color:var(--TX);font-weight:600;}
+.eq-item.on{border-color:var(--G);background:var(--IVD);}
+.eq-item .eq-ic{font-size:15px;}
+.f-more{display:none;}
+.f-more.open{display:block;}
+.cmp-check{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--TX2);cursor:pointer;}
+.cmp-check input{width:16px;height:16px;accent-color:var(--G);}
+.fav-heart{font-size:18px;cursor:pointer;line-height:1;padding:2px;}
+.gallery{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px;border-radius:12px;}
+.gallery img{height:190px;width:auto;border-radius:12px;object-fit:cover;flex:none;cursor:pointer;}
+.gallery-placeholder{height:130px;border-radius:12px;background:var(--IVD);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--TX3);font-size:32px;margin-bottom:14px;}
+.gallery-placeholder span{font-size:11.5px;}
+.cover-thumb{width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:10px;}
+.photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--LN);}
+.photo-thumb-wrap{position:relative;}
+.photo-x{position:absolute;top:-6px;right:-6px;background:var(--RD);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;}
+.trust-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;padding:6px 12px;border-radius:20px;margin-bottom:10px;}
+.trust-excellent{background:#EADFC2;color:#8A6D1E;}
+.trust-tres_fiable{background:var(--IVD);color:var(--N);}
+.trust-fiable{background:#E5EFE7;color:var(--GR);}
+.trust-nouveau{background:#F1EEE5;color:var(--TX2);}
+.stepper{display:flex;align-items:flex-start;margin-top:14px;}
+.step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
+.step .dot{width:22px;height:22px;border-radius:50%;background:#DCD3BC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;z-index:2;}
+.step.done .dot{background:var(--GR);}
+.step.current .dot{background:var(--G);}
+.step-label{font-size:9px;color:var(--TX3);margin-top:4px;text-align:center;line-height:1.2;}
+.step.done .step-label, .step.current .step-label{color:var(--N);font-weight:700;}
+.step-line{position:absolute;top:11px;left:-50%;width:100%;height:2px;background:#DCD3BC;z-index:1;}
+.step:first-child .step-line{display:none;}
+.step.done .step-line, .step.current .step-line{background:var(--GR);}
+.compare-bar{
+  position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:60;
+  background:var(--N);color:#fff;padding:11px 20px;border-radius:30px;
+  box-shadow:0 10px 26px rgba(13,27,62,.38);font-size:13px;font-weight:700;cursor:pointer;
+}
+.cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--LN);border-radius:12px;}
+.cmp-table{border-collapse:collapse;width:100%;min-width:520px;}
+.cmp-table th, .cmp-table td{padding:11px 14px;border-bottom:1px solid var(--LN);font-size:12.5px;text-align:left;white-space:nowrap;}
+.cmp-table th{background:var(--IVD);color:var(--N);font-weight:800;}
+.cmp-table td:first-child, .cmp-table th:first-child{position:sticky;left:0;background:#fff;font-weight:700;color:var(--N);z-index:2;}
+.cmp-table th:first-child{background:var(--IVD);z-index:3;}
+.cmp-table tbody tr:last-child td{border-bottom:none;}
+
+/* ============================================================
+   VERSION PC / ÉCRAN LARGE — même app, même API, mise en page adaptée
+   ============================================================ */
+@media (min-width: 900px) {
+  body{ background: var(--IVD); }
+  #app{
+    max-width: 1180px;
+    margin: 0 auto 0 236px;
+    padding-bottom: 0;
+  }
+  .nav{
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 216px;
+    max-width: none;
+    margin: 0;
+    background: #fff;
+    border-top: none;
+    border-right: 1px solid var(--LN);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 26px 12px;
+    gap: 4px;
+  }
+  .nav-i{
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    text-align: left;
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+  }
+  .nav-i.on{ background: var(--IVD); }
+  .nav-ic{ font-size: 18px; margin-bottom: 0; }
+  .tb{ padding: 18px 4px 10px; }
+  .scr{ padding: 8px 4px 48px; max-width: 960px; }
+
+  /* Listes d'offres / candidatures / contrats en grille plutôt qu'empilées */
+  #offresList, #mesOffresBox, #demBox, #mesContratsBox, #abonFeed, #abonList, #classementBox, #threadsBox, #alertesBox, #favorisBox, #sgAdminBox, #docsBox{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+  #offresList .center, #mesOffresBox .center, #demBox .center,
+  #mesContratsBox .center, #abonFeed .center, #abonList .center, #classementBox .center, #classementBox .sub, #threadsBox .center, #alertesBox .center, #favorisBox .center, #sgAdminBox .center, #docsBox .center{
+    grid-column: 1 / -1;
+  }
+
+  /* Formulaires et fiche détail : rester lisibles, pas étirés sur toute la largeur */
+  #offreBox, #threadBox{ max-width: 640px; }
+  .fg{ max-width: 460px; }
+}
+@media (min-width: 1300px) {
+  #app{ margin-left: 256px; }
+  .nav{ width: 236px; }
+  #offresList, #mesOffresBox, #demBox, #mesContratsBox, #abonFeed, #abonList, #classementBox, #threadsBox, #alertesBox, #favorisBox, #sgAdminBox, #docsBox{
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   IBS — Frontend connecté à l'API réelle (V0)
+   ============================================================ */
+const API_BASE = "https://ibs-backend-production.up.railway.app/api";
+const LOGO_B64 = "data:image/png;base64,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";
+// Inscription temporairement suspendue (à remettre à true pour la réactiver)
+const REGISTRATION_OPEN = true;
+// Connexion temporairement court-circuitée : entre directement dans l'app en mode démo (à remettre à true pour la réactiver)
+const LOGIN_OPEN = true;
+const DEMO_USER = { id: 0, nom: "Mode démo", role: "bailleur", telephone: "", commune: "", cni_statut: "verifie" };
+// Galerie photos : compte Cloudinary gratuit requis (upload direct depuis le navigateur, sans passer par le serveur).
+// Créer un compte sur cloudinary.com, un "Upload preset" en mode "Unsigned", puis renseigner les 2 valeurs ci-dessous.
+const CLOUDINARY_CLOUD_NAME = "";   // ex : "dabcxyz12"
+const CLOUDINARY_UPLOAD_PRESET = ""; // ex : "ibs_offres_unsigned"
+async function uploadPhotosToCloudinary(files) {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    toast("Galerie photo non configurée (Cloudinary). L'offre sera publiée sans photos.", "⚠️");
+    return [];
+  }
+  const urls = [];
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: fd });
+    const j = await r.json();
+    if (j.secure_url) urls.push(j.secure_url);
+  }
+  return urls;
+}
+
+const state = {
+  token: localStorage.getItem("ibs_token") || null,
+  user: null,
+  page: "loading",
+  params: {},
+  cache: {},
+};
+
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  if (state.token) headers["Authorization"] = "Bearer " + state.token;
+  const res = await fetch(API_BASE + path, { ...opts, headers });
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error((data && data.error) || "Erreur serveur (" + res.status + ")");
+  return data;
+}
+
+function go(page, params = {}) { state.page = page; state.params = params; render(); window.scrollTo(0,0); }
+function isBailleurLike(role) { return role === "bailleur" || role === "intermediaire"; }
+function roleLabel(role) { return { bailleur: "bailleur", locataire: "locataire", intermediaire: "agence", admin: "admin" }[role] || role; }
+function logout() {
+  state.token = null; state.user = null; state.cache = {}; localStorage.removeItem("ibs_token");
+  if (!LOGIN_OPEN) { state.user = DEMO_USER; go(DEMO_USER.role === "admin" ? "admin_home" : "home"); }
+  else go("welcome");
+}
+
+let toastTimer;
+function toast(msg, icon = "✅") {
+  const t = document.getElementById("toast");
+  t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+async function boot() {
+  if (!LOGIN_OPEN) { state.user = DEMO_USER; go(DEMO_USER.role === "admin" ? "admin_home" : "home"); return; }
+  if (state.token) {
+    try {
+      const r = await api("/auth/me");
+      state.user = r.user;
+      go(state.user.role === "admin" ? "admin_home" : "home");
+      return;
+    } catch { state.token = null; localStorage.removeItem("ibs_token"); }
+  }
+  go("welcome");
+}
+
+/* ============================================================ */
+function render() {
+  const app = document.getElementById("app");
+  const showNav = state.user && ["home","admin_home","offres","mine","demandes","mes_contrats","admin_cni","admin_biens","admin_stats","profil","notifications","abonnements","classement","messages","alertes","favoris","admin_signalements","mes_documents","budget"].includes(state.page);
+  app.innerHTML = topbar() + `<div class="scr">${screen()}</div>` + (showNav ? navbar() : "");
+  wire();
+  if (typeof renderCompareBar === "function") renderCompareBar();
+}
+
+function topbar() {
+  const titles = {
+    welcome:"", register:"Créer un compte", verify:"Vérification", login:"Connexion",
+    home:"", admin_home:"", offres:"Rechercher", offre:"Offre", publier:"Publier une offre", modifier_offre:"Modifier l'offre",
+    mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
+    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", profil:"Mon profil", notifications:"Notifications",
+    abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
+    carnet_loyer:"Carnet de loyer", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
+    admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
+    quartier:"Avis du quartier", quartier_avis_form:"Noter le quartier", budget:"Simulateur de budget",
+  };
+  const t = titles[state.page];
+  const back = !["welcome","home","admin_home"].includes(state.page);
+  return `<div class="tb">
+    <div style="display:flex;align-items:center;gap:8px;">
+      ${back ? `<button class="tb-back" onclick="go(state.user ? (state.user.role==='admin'?'admin_home':'home') : 'welcome')">←</button>` : ""}
+      ${t ? `<span class="tb-logo">${t}</span>` : `<img src="${LOGO_B64}" class="tb-logo-img" alt="IBS">`}
+    </div>
+    ${state.user ? `<span class="tb-role">${roleLabel(state.user.role)} · ${state.user.nom.split(" ")[0]}</span>` : ""}
+  </div>${!LOGIN_OPEN ? `<div class="beta" style="border-radius:0;text-align:center;">MODE DÉMO — connexion désactivée, écrans hors ligne du backend</div>` : ""}`;
+}
+
+function navbar() {
+  const isAdmin = state.user.role === "admin";
+  const items = isAdmin
+    ? [["admin_home","🏠","Accueil"],["admin_cni","🪪","CNI"],["admin_biens","🏘️","Biens"],["admin_stats","📊","Stats"],["profil","👤","Profil"]]
+    : [["home","🏠","Accueil"],["offres","🔍","Chercher"],
+       isBailleurLike(state.user.role) ? ["mine","📋","Mes offres"] : ["mine","📄","Candidatures"],
+       ["mes_contrats","🔏","Contrats"],
+       ["profil","👤","Profil"]];
+  return `<div class="nav">${items.map(([p,ic,lb]) =>
+    `<div class="nav-i ${state.page===p?'on':''}" onclick="go('${p}')"><span class="nav-ic">${ic}</span>${lb}</div>`
+  ).join("")}</div>`;
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+function screen() {
+  if (!LOGIN_OPEN && ["welcome", "login", "register"].includes(state.page)) {
+    if (!state.user) state.user = DEMO_USER;
+    state.page = state.user.role === "admin" ? "admin_home" : "home";
+  }
+  switch (state.page) {
+    case "loading": return `<div class="center"><span class="spin" style="border-top-color:var(--N);border-color:rgba(13,27,62,.15);"></span></div>`;
+    case "welcome": return sWelcome();
+    case "register": return REGISTRATION_OPEN ? sRegister() : sRegisterClosed();
+    case "verify": return sVerify();
+    case "login": return sLogin();
+    case "home": return sHome();
+    case "admin_home": return sAdminHome();
+    case "offres": return sOffres();
+    case "offre": return sOffreDetail();
+    case "publier": return sPublier();
+    case "abonnements": return sAbonnements();
+    case "classement": return sClassement();
+    case "modifier_offre": return sModifierOffre();
+    case "mine": return isBailleurLike(state.user.role) ? sMesOffres() : sMesCandidatures();
+    case "mes_contrats": return sMesContrats();
+    case "carnet_loyer": return sCarnetLoyer(state.params.id);
+    case "avis_form": return sAvisForm(state.params.id);
+    case "messages": return sThreadsList();
+    case "thread": return sThread(state.params.offre_id, state.params.locataire_id);
+    case "comparateur": return sComparateur();
+    case "alertes": return sAlertes();
+    case "favoris": return sFavoris();
+    case "admin_signalements": return sAdminSignalements();
+    case "signaler_offre": return sSignalerOffre(state.params.offre_id);
+    case "mes_documents": return sMesDocuments();
+    case "budget": return sBudget();
+    case "quartier": return sQuartier(state.params.commune);
+    case "quartier_avis_form": return sQuartierAvisForm(state.params.commune);
+    case "demandes": return sDemandes();
+    case "contrat": return sContrat();
+    case "admin_cni": return sAdminCni();
+    case "admin_biens": return sAdminBiens();
+    case "admin_stats": return sAdminStats();
+    case "profil": return sProfil();
+    case "notifications": return sNotifications();
+    default: return `<div class="center muted">Page introuvable</div>`;
+  }
+}
+
+/* ── Welcome ── */
+function sWelcome() {
+  return `
+  <div class="center" style="padding-top:30px;">
+    <img src="${LOGO_B64}" style="width:96px;height:96px;border-radius:22px;margin:0 auto 18px;display:block;" alt="IBS">
+    <div class="h1" style="text-align:center;">Immo-Bail Solution</div>
+    <div class="sub" style="text-align:center;">Gestion locative numérique · Kinshasa</div>
+    <div class="beta">VERSION BÊTA — paiement du loyer hors plateforme pour l'instant</div>
+  </div>
+  <div style="margin-top:10px;">
+    ${REGISTRATION_OPEN ? `<button class="btn btn-g" onclick="go('register')" style="margin-bottom:10px;">Créer un compte</button>` : ""}
+    <button class="btn btn-o" onclick="go('login')">J'ai déjà un compte</button>
+    ${!REGISTRATION_OPEN ? `<div class="center muted" style="margin-top:12px;font-size:12px;">Les nouvelles inscriptions sont momentanément suspendues.</div>` : ""}
+  </div>`;
+}
+
+/* ── Register ── */
+function sRegisterClosed() {
+  return `<div class="center muted" style="padding-top:40px;">
+    Les nouvelles inscriptions sont momentanément suspendues.<br><br>
+    <span class="lnk" onclick="go('login')">← Retour à la connexion</span>
+  </div>`;
+}
+function sRegister() {
+  const role = state.params.role || "locataire";
+  return `
+  <div class="h1">Créer un compte</div>
+  <div class="sub">La CNI est obligatoire — c'est ce qui protège tout le monde sur IBS.</div>
+  <div class="chip-row">
+    <div class="chip ${role==='bailleur'?'on':''}" onclick="go('register',{role:'bailleur'})"><div class="chip-ic">🏠</div><div class="chip-tt">Bailleur</div></div>
+    <div class="chip ${role==='locataire'?'on':''}" onclick="go('register',{role:'locataire'})"><div class="chip-ic">🔑</div><div class="chip-tt">Locataire</div></div>
+    <div class="chip ${role==='intermediaire'?'on':''}" onclick="go('register',{role:'intermediaire'})"><div class="chip-ic">🤝</div><div class="chip-tt">Agence</div></div>
+  </div>
+  <div class="fg"><label class="fl">Nom complet</label><input class="fi" id="rNom" placeholder="ex : Jean-Paul Mutombo"></div>
+  <div class="fg"><label class="fl">Téléphone</label><input class="fi" id="rTel" placeholder="+243 8XX XXX XXX"></div>
+  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="rPass" type="password" placeholder="6 caractères minimum"></div>
+  <div class="fg"><label class="fl">Commune</label>
+    <select class="fi" id="rCommune">
+      <option>Gombe</option><option>Ngaliema</option><option>Limete</option><option>Lingwala</option>
+      <option>Kintambo</option><option>Bandalungwa</option><option>Ma-Campagne</option><option>Autre</option>
+    </select>
+  </div>
+  ${role === "intermediaire" ? `
+  <div class="fg"><label class="fl">Nom de l'agence (optionnel)</label><input class="fi" id="rAgence" placeholder="ex : Kinshasa Immo Services"></div>
+  <div class="fg"><label class="fl">Numéro d'agrément ou RCCM</label><input class="fi" id="rAgrement" placeholder="ex : CD/KNG/RCCM/24-B-1234">
+    <div class="fhelp">Obligatoire pour les intermédiaires — contrôlé par l'équipe IBS comme la CNI.</div>
+  </div>` : ""}
+  <div class="fg"><label class="fl">CNI — recto</label><input class="fi" id="rCniR" type="file" accept="image/*">
+    <div class="fhelp">Stockage réel des fichiers prévu en Phase 1 — le nom du fichier suffit pour ce test.</div>
+  </div>
+  <div class="fg"><label class="fl">CNI — verso</label><input class="fi" id="rCniV" type="file" accept="image/*"></div>
+  <button class="btn btn-g" id="btnRegister" onclick="doRegister('${role}')">Créer mon compte</button>
+  <div class="center" style="padding-top:14px;"><span class="muted">Déjà inscrit ? </span><span class="lnk" onclick="go('login')">Se connecter</span></div>`;
+}
+
+async function doRegister(role) {
+  const nom = val("rNom"), telephone = val("rTel"), password = val("rPass"), commune = val("rCommune");
+  const cniR = document.getElementById("rCniR").files[0];
+  const cniV = document.getElementById("rCniV").files[0];
+  if (!nom || !telephone || !password) return toast("Remplissez tous les champs obligatoires.", "⚠️");
+  if (!cniR || !cniV) return toast("La CNI (recto et verso) est obligatoire.", "⚠️");
+  if (role === "intermediaire" && !val("rAgrement")) return toast("Le numéro d'agrément ou RCCM est obligatoire.", "⚠️");
+  setBusy("btnRegister", true);
+  try {
+    await api("/auth/register", { method: "POST", body: JSON.stringify({
+      role, nom, telephone, password, commune,
+      cni_recto_url: "local://" + cniR.name, cni_verso_url: "local://" + cniV.name,
+      agrement_ou_rccm: role === "intermediaire" ? val("rAgrement") : undefined,
+      nom_agence: role === "intermediaire" ? val("rAgence") : undefined,
+    })});
+    state.params = { telephone };
+    toast("Compte créé. Vérifiez votre téléphone.", "📩");
+    go("verify", { telephone });
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnRegister", false); }
+}
+
+/* ── Verify OTP ── */
+function sVerify() {
+  const tel = state.params.telephone || "";
+  return `
+  <div class="center">
+    <div style="font-size:34px;">📩</div>
+    <div class="h1">Vérification du téléphone</div>
+    <div class="sub">Code envoyé au <b>${tel}</b><br>(SMS simulé en V0 — vérifiez avec l'équipe IBS pour le code de test)</div>
+  </div>
+  <div class="fg"><label class="fl">Code reçu par SMS</label><input class="fi" id="vCode" placeholder="6 chiffres" maxlength="6" style="text-align:center;letter-spacing:6px;font-size:18px;font-weight:700;"></div>
+  <button class="btn btn-g" id="btnVerify" onclick="doVerify('${tel}')">Vérifier</button>
+  <div class="center" style="padding-top:12px;"><span class="lnk" onclick="doResend('${tel}')">Renvoyer le code</span></div>
+  <div class="center" style="padding-top:16px;"><span class="lnk" style="color:var(--TX3);" onclick="showDevOtp('${tel}','connexion')">🔧 Voir le code (mode test)</span></div>`;
+}
+async function doVerify(tel) {
+  const code = val("vCode");
+  if (!code) return toast("Saisissez le code.", "⚠️");
+  setBusy("btnVerify", true);
+  try {
+    const r = await api("/auth/verify-phone", { method: "POST", body: JSON.stringify({ telephone: tel, code }) });
+    state.token = r.token; state.user = r.user;
+    localStorage.setItem("ibs_token", state.token);
+    toast("Compte vérifié — bienvenue sur IBS !", "🎉");
+    go(state.user.role === "admin" ? "admin_home" : "home");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnVerify", false); }
+}
+async function doResend(tel) {
+  try { await api("/auth/resend-otp", { method: "POST", body: JSON.stringify({ telephone: tel }) }); toast("Nouveau code envoyé.", "📩"); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+async function showDevOtp(tel, contexte) {
+  try {
+    const r = await api(`/auth/dev/last-otp?telephone=${encodeURIComponent(tel)}&contexte=${contexte}`);
+    if (r.code) toast(`Code de test : ${r.code}`, "🔧"); else toast("Aucun code trouvé.", "⚠️");
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Login ── */
+function sLogin() {
+  return `
+  <div class="h1">Connexion</div>
+  <div class="fg"><label class="fl">Téléphone</label><input class="fi" id="lTel" placeholder="+243 8XX XXX XXX"></div>
+  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="lPass" type="password" placeholder="Votre mot de passe"></div>
+  <button class="btn btn-g" id="btnLogin" onclick="doLogin()">Se connecter</button>
+  ${REGISTRATION_OPEN ? `<div class="center" style="padding-top:14px;"><span class="muted">Pas encore de compte ? </span><span class="lnk" onclick="go('register')">S'inscrire</span></div>` : ""}`;
+}
+async function doLogin() {
+  const telephone = val("lTel"), password = val("lPass");
+  if (!telephone || !password) return toast("Remplissez les deux champs.", "⚠️");
+  setBusy("btnLogin", true);
+  try {
+    const r = await api("/auth/login", { method: "POST", body: JSON.stringify({ telephone, password }) });
+    state.token = r.token; state.user = r.user;
+    localStorage.setItem("ibs_token", state.token);
+    toast("Connecté.", "✅");
+    go(state.user.role === "admin" ? "admin_home" : "home");
+  } catch (e) {
+    if (e.message.includes("non vérifié")) { go("verify", { telephone }); return; }
+    toast(e.message, "⚠️");
+  } finally { setBusy("btnLogin", false); }
+}
+
+/* ── Home (bailleur/locataire) ── */
+function sHome() {
+  const u = state.user;
+  const cniOk = u.cni_statut === "verifie";
+  setTimeout(loadNotifBadge, 0);
+  return `
+  <div class="h1">Bonjour, ${u.nom.split(" ")[0]} 👋</div>
+  <div class="sub">${isBailleurLike(u.role) ? (u.role === "intermediaire" ? "Gérez les biens et candidatures de vos clients." : "Gérez vos biens et vos candidatures.") : "Trouvez votre prochain logement à Kinshasa."}</div>
+  ${!cniOk ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;"><div class="row"><span class="bdg bdg-or">⏳ ${u.role === "intermediaire" ? "Vérification en attente" : "CNI en attente"}</span></div><div class="card-sb" style="margin-top:6px;">Votre identité${u.role === "intermediaire" ? " et votre agrément doivent être vérifiés" : " doit être vérifiée"} par l'équipe IBS avant de ${isBailleurLike(u.role)?'publier une offre':'candidater'}.</div></div>` : ""}
+  <div class="card" onclick="go('notifications')" style="cursor:pointer;">
+    <div class="row"><span class="card-tt">🔔 Notifications</span><span id="notifBadge"></span></div>
+    <div class="card-sb">Vos dernières alertes IBS</div>
+  </div>
+  ${isBailleurLike(u.role) ? `
+    <div class="card" onclick="go('publier')" style="cursor:pointer;">
+      <div class="card-tt">＋ Publier une offre</div>
+      <div class="card-sb">Ajoutez un bien à louer</div>
+    </div>
+    <div class="card" onclick="go('demandes')" style="cursor:pointer;">
+      <div class="card-tt">📋 Candidatures reçues</div>
+      <div class="card-sb">Voir qui a postulé sur vos offres</div>
+    </div>
+    <div class="card" onclick="go('messages')" style="cursor:pointer;">
+      <div class="card-tt">💬 Mes messages</div>
+      <div class="card-sb">Vos conversations avec les locataires</div>
+    </div>
+  ` : `
+    <div class="card" onclick="go('offres')" style="cursor:pointer;">
+      <div class="card-tt">🔍 Rechercher un logement</div>
+      <div class="card-sb">Filtrer par commune, type, budget</div>
+    </div>
+    <div class="card" onclick="go('mine')" style="cursor:pointer;">
+      <div class="card-tt">📄 Mes candidatures</div>
+      <div class="card-sb">Suivre vos demandes en cours</div>
+    </div>
+    <div class="card" onclick="go('messages')" style="cursor:pointer;">
+      <div class="card-tt">💬 Mes messages</div>
+      <div class="card-sb">Vos conversations avec les bailleurs</div>
+    </div>
+    <div class="card" onclick="go('abonnements')" style="cursor:pointer;">
+      <div class="card-tt">⭐ Mes abonnements</div>
+      <div class="card-sb">Suivez vos bailleurs et agences de confiance</div>
+    </div>
+    <div class="card" onclick="go('alertes')" style="cursor:pointer;">
+      <div class="card-tt">🔔 Mes alertes</div>
+      <div class="card-sb">Soyez notifié des nouvelles offres qui correspondent</div>
+    </div>
+    <div class="card" onclick="go('favoris')" style="cursor:pointer;">
+      <div class="card-tt">❤️ Mes favoris</div>
+      <div class="card-sb">Vos offres sauvegardées</div>
+    </div>
+    <div class="card" onclick="go('mes_documents')" style="cursor:pointer;">
+      <div class="card-tt">📁 Mes documents</div>
+      <div class="card-sb">CNI et contrats signés, au même endroit</div>
+    </div>
+    <div class="card" onclick="go('budget')" style="cursor:pointer;">
+      <div class="card-tt">💰 Simulateur de budget</div>
+      <div class="card-sb">Trouvez le loyer max adapté à votre revenu</div>
+    </div>
+  `}`;
+}
+
+/* ── Admin home ── */
+function sAdminHome() {
+  setTimeout(loadNotifBadge, 0);
+  return `
+  <div class="h1">Espace Admin IBS</div>
+  <div class="sub">Vérification des identités et suivi de l'adoption.</div>
+  <div class="card" onclick="go('notifications')" style="cursor:pointer;">
+    <div class="row"><span class="card-tt">🔔 Notifications</span><span id="notifBadge"></span></div>
+    <div class="card-sb">Vos dernières alertes IBS</div>
+  </div>
+  <div class="card" onclick="go('admin_cni')" style="cursor:pointer;"><div class="card-tt">🪪 Vérification CNI</div><div class="card-sb">Comptes en attente de contrôle</div></div>
+  <div class="card" onclick="go('admin_biens')" style="cursor:pointer;"><div class="card-tt">🏘️ Vérification des biens</div><div class="card-sb">Titres de propriété en attente de contrôle</div></div>
+  <div class="card" onclick="go('admin_signalements')" style="cursor:pointer;"><div class="card-tt">🚩 Signalements</div><div class="card-sb">Annonces signalées par les locataires</div></div>
+  <div class="card" onclick="go('admin_stats')" style="cursor:pointer;"><div class="card-tt">📊 Tableau de bord</div><div class="card-sb">Entonnoir d'adoption V0</div></div>`;
+}
+
+/* ── Offres (recherche publique) ── */
+function sOffres() {
+  setTimeout(loadOffres, 0);
+  const budgetPreRempli = state.cache.budgetSuggere || "";
+  delete state.cache.budgetSuggere;
+  return `
+  <div class="row" style="margin-bottom:2px;">
+    <div></div>
+    <span class="lnk" onclick="go('alertes')">🔔 Mes alertes</span>
+  </div>
+  <div class="fg"><input class="fi" id="fCommune" placeholder="Commune (ex : Limete)"></div>
+  <div style="display:flex;gap:10px;">
+    <div class="fg" style="flex:1;"><input class="fi" id="fBudget" placeholder="Budget max USD" type="number" value="${budgetPreRempli}"></div>
+    <div class="fg" style="flex:1;"><select class="fi" id="fType"><option value="">Tous types</option><option>studio</option><option>appartement</option><option>maison</option><option>villa</option></select></div>
+  </div>
+  <div class="lnk" style="display:inline-block;margin-bottom:10px;" onclick="document.getElementById('fMore').classList.toggle('open')">⚙️ Filtres avancés</div>
+  <div id="fMore" class="f-more">
+    <div style="display:flex;gap:10px;">
+      <div class="fg" style="flex:1;"><label class="fl">Garantie max (mois)</label><input class="fi" id="fGarantie" type="number" placeholder="ex : 6"></div>
+      <div class="fg" style="flex:1;"><label class="fl">Disponibilité</label>
+        <select class="fi" id="fDispo">
+          <option value="">Peu importe</option>
+          <option value="immediat">Disponible immédiat</option>
+          <option value="sous_7j">Sous 7 jours</option>
+          <option value="sous_30j">Sous 30 jours</option>
+        </select>
+      </div>
+    </div>
+    <div class="chk" id="fCharges" onclick="this.classList.toggle('on')">
+      <div class="chk-box">✓</div><div class="chk-txt">Charges incluses uniquement</div>
+    </div>
+    ${eqGridHtml([], "fEq")}
+  </div>
+  <button class="btn btn-o" onclick="loadOffres()" style="margin-bottom:10px;">Filtrer</button>
+  <button class="btn btn-o" onclick="doCreerAlerte()" style="margin-bottom:14px;">🔔 Créer une alerte avec ces critères</button>
+  <div id="offresList"><div class="center muted">Chargement…</div></div>`;
+}
+async function doCreerAlerte() {
+  const commune = val("fCommune"), budget_max = val("fBudget"), type = val("fType");
+  if (!commune && !budget_max && !type) { toast("Renseignez au moins un critère (commune, type ou budget).", "⚠️"); return; }
+  try {
+    await api("/alertes", { method: "POST", body: JSON.stringify({ commune: commune || null, type: type || null, budget_max: budget_max ? Number(budget_max) : null }) });
+    toast("Alerte créée ! Vous serez notifié des nouvelles offres correspondantes.", "🔔");
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+async function loadOffres() {
+  const commune = val("fCommune"), budget_max = val("fBudget"), type = val("fType");
+  const garantie_max = val("fGarantie"), disponibilite = val("fDispo");
+  const charges_incluses = document.getElementById("fCharges") && document.getElementById("fCharges").classList.contains("on");
+  const eq = selectedEq("fMore");
+  const qs = new URLSearchParams();
+  if (commune) qs.set("commune", commune);
+  if (budget_max) qs.set("budget_max", budget_max);
+  if (type) qs.set("type", type);
+  if (garantie_max) qs.set("garantie_max", garantie_max);
+  if (disponibilite) qs.set("disponibilite", disponibilite);
+  if (charges_incluses) qs.set("charges_incluses", "true");
+  if (eq.length) qs.set("equipements", eq.join(","));
+  const box = document.getElementById("offresList");
+  box.innerHTML = `<div class="center muted">Chargement…</div>`;
+  try {
+    const r = await api("/offres?" + qs.toString());
+    if (!r.offres.length) { box.innerHTML = `<div class="center muted">Aucune offre pour ces critères.</div>`; return; }
+    if (state.user.role === "locataire" && !state.cache.favIds) {
+      try { const fr = await api("/favoris/ids"); state.cache.favIds = new Set(fr.ids); } catch { state.cache.favIds = new Set(); }
+    }
+    state.cache.lastOffresById = state.cache.lastOffresById || {};
+    r.offres.forEach(o => { state.cache.lastOffresById[o.offre_id] = o; });
+    box.innerHTML = r.offres.map(o => `
+      <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
+        ${(o.photos || []).length ? `<img class="cover-thumb" src="${o.photos[0]}">` : ""}
+        <div class="row">
+          <div>
+            <div class="card-tt">${o.titre}</div>
+            <div class="card-sb">📍 ${o.commune}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${o.statut_verification!=='verifie' ? '<span class="bdg bdg-or">⏳ Vérification</span>' : '<span class="bdg bdg-gr">✓ Vérifié</span>'}
+            ${state.user.role === "locataire" ? `<span class="fav-heart" onclick="event.stopPropagation();toggleFavori(${o.offre_id}, this)">${state.cache.favIds.has(o.offre_id) ? "❤️" : "🤍"}</span>` : ""}
+          </div>
+        </div>
+        <div class="spec-row">
+          <span class="spec-chip"><span class="ic">${typeIcon(o.type)}</span>${capitalize(o.type)}</span>
+          <span class="spec-chip"><span class="ic">🛏</span>${o.chambres} ch.</span>
+          ${(o.equipements || []).slice(0, 2).map(c => `<span class="spec-chip">${eqLabel(c)}</span>`).join("")}
+        </div>
+        <div class="price-block">
+          <div class="price-cell accent"><div class="plbl">Loyer / mois</div><div class="pval">${o.loyer_usd} $</div></div>
+          <div class="price-cell"><div class="plbl">Garantie</div><div class="pval">${o.garantie_mois ? o.garantie_mois + " mois" : "—"}</div></div>
+          <div class="price-cell"><div class="plbl">Charges</div><div class="pval" style="font-size:11px;">${o.charges_incluses ? "Incluses" : "Non incl."}</div></div>
+        </div>
+        <div class="offer-foot"><span class="avail"><span class="d"></span>${DISPO_LABEL[o.disponibilite] || "Disponible immédiat"}</span></div>
+        <label class="cmp-check" onclick="event.stopPropagation();">
+          <input type="checkbox" ${(state.cache.compareIds || []).includes(o.offre_id) ? "checked" : ""} onchange="toggleCompare(${o.offre_id}, this)">
+          <span>Ajouter au comparateur</span>
+        </label>
+      </div>`).join("");
+    renderCompareBar();
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Comparateur d'offres ── */
+function toggleCompare(id, el) {
+  state.cache.compareIds = state.cache.compareIds || [];
+  if (el.checked) {
+    if (state.cache.compareIds.length >= 3) { el.checked = false; toast("Maximum 3 offres à comparer.", "⚠️"); return; }
+    state.cache.compareIds.push(id);
+  } else {
+    state.cache.compareIds = state.cache.compareIds.filter(x => x !== id);
+  }
+  renderCompareBar();
+}
+function renderCompareBar() {
+  let bar = document.getElementById("compareBar");
+  const ids = state.cache.compareIds || [];
+  if (state.page === "offres" && ids.length >= 2) {
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "compareBar";
+      bar.className = "compare-bar";
+      bar.onclick = () => go("comparateur");
+      document.body.appendChild(bar);
+    }
+    bar.innerHTML = `⚖️ Comparer (${ids.length}) →`;
+  } else if (bar) {
+    bar.remove();
+  }
+}
+function clearCompare() { state.cache.compareIds = []; const b = document.getElementById("compareBar"); if (b) b.remove(); go("offres"); }
+function sComparateur() {
+  const ids = state.cache.compareIds || [];
+  const offers = ids.map(id => (state.cache.lastOffresById || {})[id]).filter(Boolean);
+  if (offers.length < 2) {
+    return `<div class="center muted">Sélectionnez au moins 2 offres depuis "Chercher" pour les comparer.<br><span class="lnk" onclick="go('offres')">← Retour à la recherche</span></div>`;
+  }
+  const rows = [
+    { lbl: "Commune", val: o => o.commune },
+    { lbl: "Type", val: o => capitalize(o.type) },
+    { lbl: "Chambres", val: o => o.chambres },
+    { lbl: "Loyer / mois", val: o => o.loyer_usd + " $" },
+    { lbl: "Garantie", val: o => o.garantie_mois ? o.garantie_mois + " mois" : "—" },
+    { lbl: "Charges", val: o => o.charges_incluses ? "Incluses" : "Non incluses" },
+    { lbl: "Disponibilité", val: o => DISPO_LABEL[o.disponibilite] || "Immédiat" },
+    { lbl: "Vérification", val: o => o.statut_verification === "verifie" ? "✓ Vérifié" : "⏳ En cours" },
+    { lbl: "Équipements", val: o => (o.equipements || []).length ? o.equipements.map(eqLabel).join(", ") : "—" },
+  ];
+  return `
+    <div class="cmp-wrap">
+      <table class="cmp-table">
+        <thead><tr><th>Critère</th>${offers.map(o => `<th onclick="go('offre',{id:${o.offre_id}})" style="cursor:pointer;">${o.titre}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(r => `<tr><td>${r.lbl}</td>${offers.map(o => `<td>${r.val(o)}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <button class="btn btn-o" style="margin-top:16px;" onclick="clearCompare()">Vider la sélection</button>`;
+}
+
+/* ── Mes alertes de recherche ── */
+function sAlertes() {
+  setTimeout(loadAlertes, 0);
+  return `<div id="alertesBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAlertes() {
+  const box = document.getElementById("alertesBox");
+  try {
+    const r = await api("/alertes/mine");
+    if (!r.alertes.length) {
+      box.innerHTML = `<div class="center muted">Aucune alerte pour l'instant.<br>Depuis "Chercher", renseignez des critères puis appuyez sur "🔔 Créer une alerte avec ces critères".<br><span class="lnk" onclick="go('offres')">← Aller à Chercher</span></div>`;
+      return;
+    }
+    box.innerHTML = r.alertes.map(a => `
+      <div class="card">
+        <div class="row">
+          <div class="card-tt">${[a.commune, a.type ? capitalize(a.type) : null, a.budget_max ? "≤ " + a.budget_max + " $" : null].filter(Boolean).join(" · ") || "Toutes offres"}</div>
+          <span class="bdg ${a.actif ? "bdg-gr" : "bdg-rd"}">${a.actif ? "Active" : "Suspendue"}</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-o btn-sm" onclick="doToggleAlerte(${a.id})">${a.actif ? "⏸ Suspendre" : "▶ Réactiver"}</button>
+          <button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="doSupprimerAlerte(${a.id})">🗑 Supprimer</button>
+        </div>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doToggleAlerte(id) {
+  try { await api(`/alertes/${id}/toggle`, { method: "POST" }); loadAlertes(); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+async function doSupprimerAlerte(id) {
+  try { await api(`/alertes/${id}`, { method: "DELETE" }); toast("Alerte supprimée.", "🗑"); loadAlertes(); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function toggleFavori(id, el) {
+  state.cache.favIds = state.cache.favIds || new Set();
+  const isFav = state.cache.favIds.has(id);
+  try {
+    if (isFav) { await api(`/favoris/${id}`, { method: "DELETE" }); state.cache.favIds.delete(id); if (el) el.textContent = "🤍"; }
+    else { await api("/favoris", { method: "POST", body: JSON.stringify({ offre_id: id }) }); state.cache.favIds.add(id); if (el) el.textContent = "❤️"; }
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+function sFavoris() {
+  setTimeout(loadFavoris, 0);
+  return `<div id="favorisBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadFavoris() {
+  const box = document.getElementById("favorisBox");
+  try {
+    const r = await api("/favoris/mine");
+    state.cache.favIds = new Set(r.favoris.map(o => o.offre_id));
+    if (!r.favoris.length) { box.innerHTML = `<div class="center muted">Aucun favori pour l'instant.<br>Appuyez sur 🤍 sur une offre pour la sauvegarder.<br><span class="lnk" onclick="go('offres')">← Aller à Chercher</span></div>`; return; }
+    box.innerHTML = r.favoris.map(o => `
+      <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
+        <div class="row">
+          <div>
+            <div class="card-tt">${o.titre}</div>
+            <div class="card-sb">📍 ${o.commune}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${o.statut_verification!=='verifie' ? '<span class="bdg bdg-or">⏳ Vérification</span>' : '<span class="bdg bdg-gr">✓ Vérifié</span>'}
+            <span class="fav-heart" onclick="event.stopPropagation();toggleFavori(${o.offre_id}, this);this.closest('.card').style.opacity='.35';">❤️</span>
+          </div>
+        </div>
+        <div class="spec-row">
+          <span class="spec-chip"><span class="ic">${typeIcon(o.type)}</span>${capitalize(o.type)}</span>
+          <span class="spec-chip"><span class="ic">🛏</span>${o.chambres} ch.</span>
+        </div>
+        <div class="price-block">
+          <div class="price-cell accent"><div class="plbl">Loyer / mois</div><div class="pval">${o.loyer_usd} $</div></div>
+          <div class="price-cell"><div class="plbl">Garantie</div><div class="pval">${o.garantie_mois ? o.garantie_mois + " mois" : "—"}</div></div>
+          <div class="price-cell"><div class="plbl">Charges</div><div class="pval" style="font-size:11px;">${o.charges_incluses ? "Incluses" : "Non incl."}</div></div>
+        </div>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Signaler une offre suspecte (locataire) ── */
+const MOTIFS_SIGNALEMENT = [
+  "Annonce mensongère ou photos trompeuses",
+  "Bailleur injoignable ou suspect",
+  "Bien déjà loué / annonce non retirée",
+  "Demande de paiement anormale avant visite",
+  "Autre",
+];
+function sSignalerOffre(offreId) {
+  return `
+  <div class="sub" style="margin-top:-6px;">Votre signalement est transmis à l'équipe IBS pour vérification.</div>
+  <div class="fg"><label class="fl">Motif</label>
+    <select class="fi" id="sgMotif">${MOTIFS_SIGNALEMENT.map(m => `<option>${m}</option>`).join("")}</select>
+  </div>
+  <div class="fg"><label class="fl">Détails (optionnel)</label><textarea class="fi" id="sgDetails" rows="3" placeholder="Précisez la situation…"></textarea></div>
+  <button class="btn btn-g" onclick="doSignalerOffre(${offreId})">Envoyer le signalement</button>`;
+}
+async function doSignalerOffre(offreId) {
+  try {
+    await api("/signalements", { method: "POST", body: JSON.stringify({ offre_id: offreId, motif: val("sgMotif") || MOTIFS_SIGNALEMENT[0], details: val("sgDetails") }) });
+    toast("Signalement transmis. Merci de veiller sur la plateforme.", "🚩");
+    go("offres");
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Admin : file de modération des signalements ── */
+function sAdminSignalements() {
+  setTimeout(loadAdminSignalements, 0);
+  return `<div id="sgAdminBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAdminSignalements() {
+  const box = document.getElementById("sgAdminBox");
+  try {
+    const r = await api("/signalements/admin");
+    if (!r.signalements.length) { box.innerHTML = `<div class="center muted">Aucun signalement pour l'instant.</div>`; return; }
+    const stLabel = { en_attente: "En attente", traite: "Traité", rejete: "Rejeté" };
+    const stClass = { en_attente: "bdg-or", traite: "bdg-gr", rejete: "bdg-rd" };
+    box.innerHTML = r.signalements.map(s => `
+      <div class="card">
+        <div class="row"><span class="card-tt">${s.titre}</span><span class="bdg ${stClass[s.statut]}">${stLabel[s.statut]}</span></div>
+        <div class="card-sb">📍 ${s.commune} · signalé par ${s.signale_par}</div>
+        <div class="card-sb" style="margin-top:6px;font-weight:700;color:var(--N);">${s.motif}</div>
+        ${s.details ? `<div class="card-sb" style="font-style:italic;">"${s.details}"</div>` : ""}
+        ${s.statut === "en_attente" ? `
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="btn btn-o btn-sm" onclick="go('offre',{id:${s.offre_id}})">Voir l'offre</button>
+            <button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="doTraiterSignalement(${s.id},'traite',true)">🚫 Suspendre l'offre</button>
+            <button class="btn btn-o btn-sm" onclick="doTraiterSignalement(${s.id},'traite',false)">✓ Traité, sans suite</button>
+            <button class="btn btn-o btn-sm" onclick="doTraiterSignalement(${s.id},'rejete',false)">Rejeter</button>
+          </div>` : ""}
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doTraiterSignalement(id, statut, suspendre) {
+  try {
+    await api(`/signalements/${id}/traiter`, { method: "POST", body: JSON.stringify({ statut, suspendre_offre: suspendre }) });
+    toast("Signalement mis à jour.", "✅");
+    loadAdminSignalements();
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Mes documents (locataire) ── */
+function sMesDocuments() {
+  setTimeout(loadMesDocuments, 0);
+  return `<div id="docsBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadMesDocuments() {
+  const box = document.getElementById("docsBox");
+  try {
+    const [me, contrats] = await Promise.all([api("/auth/me"), api("/contrats")]);
+    const u = me.user;
+    const baux = contrats.contrats.filter(c => c.statut === "signe");
+    box.innerHTML = `
+      <div class="h1" style="font-size:16px;">Pièce d'identité</div>
+      <div class="card">
+        <div class="st"><div class="st-k">Statut</div><div class="st-v">${u.cni_statut === "verifie" ? "✓ Vérifiée" : "⏳ En attente"}</div></div>
+        ${u.cni_recto_url ? `<div class="st"><div class="st-k">Recto</div><div class="st-v"><a href="${u.cni_recto_url}" target="_blank" style="color:var(--N);">Voir le fichier</a></div></div>` : ""}
+        ${u.cni_verso_url ? `<div class="st"><div class="st-k">Verso</div><div class="st-v"><a href="${u.cni_verso_url}" target="_blank" style="color:var(--N);">Voir le fichier</a></div></div>` : ""}
+      </div>
+      <div class="h1" style="font-size:16px;margin-top:22px;">Baux signés</div>
+      ${baux.length ? baux.map(c => `
+        <div class="card">
+          <div class="card-tt">${c.titre}</div>
+          <div class="card-sb">${c.commune} · Réf. ${c.reference_signature || "—"}</div>
+          <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="telechargerPdf(${c.id})">📄 Télécharger le PDF</button>
+        </div>`).join("") : `<div class="center muted">Aucun bail signé pour l'instant.</div>`}
+    `;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Avis sur le quartier (commune) ── */
+function sQuartier(commune) {
+  setTimeout(() => loadQuartier(commune), 0);
+  return `<div id="quartierBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadQuartier(commune) {
+  const box = document.getElementById("quartierBox");
+  try {
+    const r = await api("/quartiers/" + encodeURIComponent(commune));
+    box.innerHTML = `
+      <div class="h1" style="font-size:18px;">${commune}</div>
+      ${r.avis_count ? `
+      <div class="price-block">
+        <div class="price-cell accent"><div class="plbl">Sécurité</div><div class="pval">${r.note_securite_moyenne} ★</div></div>
+        <div class="price-cell accent"><div class="plbl">Eau / courant</div><div class="pval">${r.note_services_moyenne} ★</div></div>
+        <div class="price-cell accent"><div class="plbl">Transport</div><div class="pval">${r.note_transport_moyenne} ★</div></div>
+      </div>
+      <div class="sub" style="margin-top:8px;">${r.avis_count} avis de locataires ayant vécu dans ce quartier via IBS.</div>
+      ${r.avis.filter(a => a.commentaire).map(a => `<div class="card"><div class="card-sb" style="font-style:italic;">"${a.commentaire}"</div></div>`).join("")}
+      ` : `<div class="center muted">Aucun avis pour ce quartier pour l'instant.</div>`}
+      ${state.user && state.user.role === "locataire" ? `<button class="btn btn-o" style="margin-top:16px;" onclick="go('quartier_avis_form',{commune:${JSON.stringify(commune)}})">Noter ce quartier</button>` : ""}
+    `;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+function sQuartierAvisForm(commune) {
+  return `
+  <div class="sub" style="margin-top:-6px;">Réservé aux locataires ayant eu un bail signé à ${commune} via IBS.</div>
+  ${["Sécurité", "Eau / courant", "Transport"].map((lbl, i) => `
+    <div class="fg"><label class="fl">${lbl}</label>
+      <div class="qz-stars" data-key="qz${i}">${[1,2,3,4,5].map(n => `<span class="star" data-n="${n}" onclick="setQzStar('qz${i}',${n})" style="cursor:pointer;font-size:26px;color:#DCD3BC;">★</span>`).join("")}</div>
+    </div>`).join("")}
+  <div class="fg"><label class="fl">Commentaire (optionnel)</label><textarea class="fi" id="qzCommentaire" rows="3"></textarea></div>
+  <button class="btn btn-g" onclick="doSubmitQuartierAvis(${JSON.stringify(commune)})">Envoyer mon avis</button>`;
+}
+function setQzStar(key, n) {
+  state.cache[key] = n;
+  document.querySelectorAll(`.qz-stars[data-key="${key}"] .star`).forEach(el => {
+    el.style.color = Number(el.dataset.n) <= n ? "var(--G)" : "#DCD3BC";
+  });
+}
+async function doSubmitQuartierAvis(commune) {
+  const note_securite = state.cache.qz0, note_services = state.cache.qz1, note_transport = state.cache.qz2;
+  if (!note_securite || !note_services || !note_transport) { toast("Notez les 3 critères.", "⚠️"); return; }
+  try {
+    await api("/quartiers", { method: "POST", body: JSON.stringify({ commune, note_securite, note_services, note_transport, commentaire: val("qzCommentaire") }) });
+    toast("Merci pour votre avis sur le quartier !", "🏘️");
+    go("quartier", { commune });
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Simulateur de budget ── */
+function sBudget() {
+  const revenu = state.user && state.user.revenu_usd ? state.user.revenu_usd : "";
+  return `
+  <div class="sub" style="margin-top:-6px;">Règle courante : consacrer au maximum 30% de vos revenus au loyer.</div>
+  <div class="fg"><label class="fl">Revenu mensuel (USD)</label><input class="fi" id="bgRevenu" type="number" placeholder="ex : 400" value="${revenu}" oninput="calcBudget()"></div>
+  <div class="price-block" id="bgResult" style="display:${revenu ? "flex" : "none"};">
+    <div class="price-cell accent"><div class="plbl">Loyer max conseillé</div><div class="pval" id="bgMax">—</div></div>
+  </div>
+  <button class="btn btn-g" style="margin-top:14px;" onclick="appliquerBudget()">Voir les offres sous ce budget</button>`;
+}
+function calcBudget() {
+  const revenu = Number(val("bgRevenu"));
+  const box = document.getElementById("bgResult");
+  if (!revenu) { box.style.display = "none"; return; }
+  box.style.display = "flex";
+  document.getElementById("bgMax").textContent = Math.floor(revenu * 0.3) + " $";
+}
+function appliquerBudget() {
+  const revenu = Number(val("bgRevenu"));
+  if (!revenu) { toast("Renseignez votre revenu mensuel.", "⚠️"); return; }
+  state.cache.budgetSuggere = Math.floor(revenu * 0.3);
+  go("offres");
+}
+
+/* ── Offre détail ── */
+function sOffreDetail() {
+  setTimeout(() => loadOffreDetail(state.params.id), 0);
+  return `<div id="offreBox"><div class="center muted">Chargement…</div></div>`;
+}
+function doPartagerOffre(titre, commune, loyer) {
+  const texte = `🏠 ${titre} — ${commune}\n💰 ${loyer} USD/mois\nVu sur IBS (Immo-Bail Solution), la plateforme de gestion locative de Kinshasa.`;
+  if (navigator.share) {
+    navigator.share({ title: "IBS — " + titre, text: texte }).catch(() => {});
+  } else {
+    window.open("https://wa.me/?text=" + encodeURIComponent(texte), "_blank");
+  }
+}
+async function loadOffreDetail(id) {
+  const box = document.getElementById("offreBox");
+  try {
+    const r = await api("/offres/" + id);
+    const o = r.offre;
+    const canApply = state.user && state.user.role === "locataire";
+    if (canApply && !state.cache.favIds) {
+      try { const fr = await api("/favoris/ids"); state.cache.favIds = new Set(fr.ids); } catch { state.cache.favIds = new Set(); }
+    }
+    box.innerHTML = `
+      ${(o.photos || []).length
+        ? `<div class="gallery">${o.photos.map(u => `<img src="${u}" onclick="window.open('${u}','_blank')">`).join("")}</div>`
+        : `<div class="gallery-placeholder">🏠<span>Aucune photo pour cette offre</span></div>`}
+      ${o.confiance ? `<div class="trust-badge trust-${o.confiance.code}">${o.confiance.icon} ${o.confiance.label}</div>` : ""}
+      <div class="row" style="align-items:flex-start;">
+        <div class="h1" style="margin-bottom:0;">${o.titre}</div>
+        <div style="display:flex;gap:6px;">
+          ${canApply ? `<span class="fav-heart" id="favHeart" onclick="toggleFavori(${o.offre_id}, this)">${state.cache.favIds && state.cache.favIds.has(o.offre_id) ? "❤️" : "🤍"}</span>` : ""}
+          <span class="fav-heart" onclick='doPartagerOffre(${JSON.stringify(o.titre)},${JSON.stringify(o.commune)},${o.loyer_usd})'>📤</span>
+        </div>
+      </div>
+      <div class="sub">📍 ${o.commune}${o.adresse ? " · " + o.adresse : ""}</div>
+      <div class="spec-row">
+        <span class="spec-chip"><span class="ic">${typeIcon(o.type)}</span>${capitalize(o.type)}</span>
+        <span class="spec-chip"><span class="ic">🛏</span>${o.chambres} chambre${o.chambres > 1 ? "s" : ""}</span>
+        <span class="spec-chip"><span class="ic">${o.statut_verification === "verifie" ? "✓" : "🕐"}</span>${o.statut_verification === "verifie" ? "Titre vérifié" : "Vérification en cours"}</span>
+        ${o.tier ? `<span class="spec-chip">${TIER_ICON[o.tier.code] || "🏅"} Palier ${o.tier.nom}</span>` : ""}
+      </div>
+      ${(o.equipements || []).length ? `<div class="spec-row">${o.equipements.map(c => `<span class="spec-chip">${eqLabel(c)}</span>`).join("")}</div>` : ""}
+      <div class="price-block">
+        <div class="price-cell accent"><div class="plbl">Loyer / mois</div><div class="pval">${o.loyer_usd} $</div></div>
+        <div class="price-cell"><div class="plbl">Garantie</div><div class="pval">${o.garantie_mois ? o.garantie_mois + " mois" : "—"}</div></div>
+        <div class="price-cell"><div class="plbl">Charges</div><div class="pval" style="font-size:11px;">${o.charges_incluses ? "Incluses" : "Non incl."}</div></div>
+      </div>
+      <div class="offer-foot" style="margin-bottom:4px;"><span class="avail"><span class="d"></span>${DISPO_LABEL[o.disponibilite] || "Disponible immédiat"}</span></div>
+      <div class="lnk" onclick="go('quartier',{commune:${JSON.stringify(o.commune)}})">🏘️ Voir les avis sur le quartier ${o.commune}</div>
+      <div class="card" style="margin-top:14px;">
+        <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${o.bailleur_nom}</div></div>
+        <div class="st"><div class="st-k">Note locataires</div><div class="st-v">${o.note_moyenne ? "⭐ " + o.note_moyenne.toFixed(1) + " (" + o.avis_count + " avis)" : "Pas encore d'avis"}</div></div>
+        <div class="st"><div class="st-k">Abonnés</div><div class="st-v">${o.abonnes_count || 0}${o.tier && o.tier.cap ? " / " + o.tier.cap : ""}</div></div>
+        <div class="st"><div class="st-k">Baux signés</div><div class="st-v">${o.baux_signes || 0}</div></div>
+        <div class="st"><div class="st-k">Contact</div><div class="st-v"><a href="tel:${o.bailleur_telephone}" style="color:var(--N);">📞 ${o.bailleur_telephone}</a></div></div>
+      </div>
+      ${canApply ? `
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-n" id="abBtn" style="flex:1;" onclick="toggleAbonnement(${o.bailleur_id})">⭐ Suivre</button>
+          <button class="btn btn-o" style="flex:1;" onclick="go('thread',{offre_id:${o.offre_id},locataire_id:${state.user.id}})">💬 Message</button>
+        </div>` : ""}
+      ${o.description ? `<div class="card"><div class="card-sb">${o.description}</div></div>` : ""}
+      ${canApply
+        ? `<div class="fg"><label class="fl">Message au bailleur (optionnel)</label><textarea class="fi" id="postMsg" rows="3" placeholder="Précisez votre situation, date souhaitée…"></textarea></div>
+           <button class="btn btn-g" id="btnPostuler" onclick="doPostuler(${o.offre_id})">Postuler sur cette offre</button>
+           <div class="lnk" style="display:block;text-align:center;margin-top:14px;color:var(--RD);" onclick="go('signaler_offre',{offre_id:${o.offre_id}})">🚩 Signaler cette annonce</div>`
+        : (!state.user ? `<button class="btn btn-n" onclick="go('login')">Se connecter pour postuler</button>` : "")}
+    `;
+    if (canApply) { await ensureAbonnementsCache(); renderAbonnementBtn(o.bailleur_id); }
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doPostuler(offreId) {
+  if (state.user.cni_statut !== "verifie") return toast("Votre identité doit être vérifiée avant de candidater.", "⚠️");
+  setBusy("btnPostuler", true);
+  try {
+    await api("/demandes", { method: "POST", body: JSON.stringify({ offre_id: offreId, message: val("postMsg") }) });
+    toast("Candidature envoyée !", "✅");
+    go("mine");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnPostuler", false); }
+}
+
+/* ── Publier une offre (bailleur) ── */
+function sPublier() {
+  if (state.user.cni_statut !== "verifie") return `<div class="card"><div class="card-tt">⏳ Identité en attente</div><div class="card-sb">Votre CNI doit être vérifiée par l'équipe IBS avant de publier.</div></div>`;
+  return `
+  <div class="h1">Publier une offre</div>
+  <div class="fg"><label class="fl">Titre</label><input class="fi" id="pTitre" placeholder="ex : F3 meublé Limete"></div>
+  <div class="fg"><label class="fl">Type de bien</label><select class="fi" id="pType"><option>studio</option><option>appartement</option><option>maison</option><option>villa</option></select></div>
+  <div class="fg"><label class="fl">Commune</label><input class="fi" id="pCommune" placeholder="ex : Limete"></div>
+  <div class="fg"><label class="fl">Adresse</label><input class="fi" id="pAdresse" placeholder="ex : Av. Kasa-Vubu"></div>
+  <div style="display:flex;gap:10px;">
+    <div class="fg" style="flex:1;"><label class="fl">Chambres</label><input class="fi" id="pChambres" type="number" value="2"></div>
+    <div class="fg" style="flex:1;"><label class="fl">Loyer (USD/mois)</label><input class="fi" id="pLoyer" type="number" placeholder="ex : 250"></div>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <div class="fg" style="flex:1;"><label class="fl">Garantie (mois)</label><input class="fi" id="pGarantie" type="number" placeholder="ex : 6"></div>
+    <div class="fg" style="flex:1;"><label class="fl">Disponibilité</label>
+      <select class="fi" id="pDispo">
+        <option value="immediat">Disponible immédiat</option>
+        <option value="sous_7j">Sous 7 jours</option>
+        <option value="sous_30j">Sous 30 jours</option>
+      </select>
+    </div>
+  </div>
+  <div class="chk on" id="pCharges" onclick="this.classList.toggle('on')">
+    <div class="chk-box">✓</div><div class="chk-txt">Charges (eau, courant, sécurité) incluses dans le loyer</div>
+  </div>
+  ${eqGridHtml()}
+  <div class="fg"><label class="fl">Description</label><textarea class="fi" id="pDesc" rows="3"></textarea></div>
+  <div class="fg"><label class="fl">Photos du logement (jusqu'à 8)</label>
+    <input class="fi" id="pPhotos" type="file" accept="image/*" multiple onchange="previewPhotos(this,'pPhotosPreview')">
+    <div id="pPhotosPreview" class="photo-preview"></div>
+  </div>
+  <div class="fg"><label class="fl">Titre de propriété (justificatif)</label><input class="fi" id="pTitreProp" type="file">
+    <div class="fhelp">Sera contrôlé par l'équipe IBS — le badge "Vérification en cours" s'affiche en attendant.</div>
+  </div>
+  <button class="btn btn-g" id="btnPublier" onclick="doPublier()">Publier l'offre</button>`;
+}
+function previewPhotos(input, previewId) {
+  const box = document.getElementById(previewId);
+  box.innerHTML = "";
+  Array.from(input.files).slice(0, 8).forEach(f => {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(f);
+    box.appendChild(img);
+  });
+}
+async function doPublier() {
+  const titre = val("pTitre"), commune = val("pCommune"), loyer_usd = val("pLoyer");
+  if (!titre || !commune || !loyer_usd) return toast("Titre, commune et loyer sont requis.", "⚠️");
+  const f = document.getElementById("pTitreProp").files[0];
+  const photoFiles = Array.from(document.getElementById("pPhotos").files).slice(0, 8);
+  setBusy("btnPublier", true);
+  try {
+    const photos = photoFiles.length ? await uploadPhotosToCloudinary(photoFiles) : [];
+    await api("/offres", { method: "POST", body: JSON.stringify({
+      titre, type: val("pType"), commune, adresse: val("pAdresse"),
+      chambres: Number(val("pChambres") || 1), loyer_usd: Number(loyer_usd),
+      description: val("pDesc"), titre_propriete_url: f ? "local://" + f.name : null,
+      garantie_mois: val("pGarantie") ? Number(val("pGarantie")) : null,
+      charges_incluses: document.getElementById("pCharges").classList.contains("on"),
+      equipements: selectedEq(), disponibilite: val("pDispo"), photos,
+    })});
+    toast("Offre publiée !", "🎉");
+    go("mine");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnPublier", false); }
+}
+
+/* ── Mes offres (bailleur) ── */
+function sMesOffres() {
+  setTimeout(loadMesOffres, 0);
+  return `<div id="mesOffresBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadMesOffres() {
+  const box = document.getElementById("mesOffresBox");
+  try {
+    const r = await api("/offres/mine/liste");
+    if (!r.offres.length) { box.innerHTML = `<div class="center muted">Aucune offre publiée pour l'instant.<br><span class="lnk" onclick="go('publier')">Publier ma première offre →</span></div>`; return; }
+    box.innerHTML = r.offres.map(o => `
+      <div class="card offer-card" style="cursor:default;">
+        <div class="row">
+          <div>
+            <div class="card-tt">${o.titre}</div>
+            <div class="card-sb">📍 ${o.commune}</div>
+          </div>
+          <span class="bdg ${o.statut==='louee'?'bdg-gr':o.statut==='suspendue'?'bdg-rd':'bdg-or'}">${o.statut}</span>
+        </div>
+        <div class="spec-row">
+          <span class="spec-chip"><span class="ic">👁</span>${o.vues} vues</span>
+          <span class="spec-chip"><span class="ic">${o.statut_verification === "verifie" ? "✓" : "🕐"}</span>${o.statut_verification === "verifie" ? "Titre validé" : "Titre en attente"}</span>
+        </div>
+        <div class="price-block">
+          <div class="price-cell accent"><div class="plbl">Loyer / mois</div><div class="pval">${o.loyer_usd} $</div></div>
+          <div class="price-cell"><div class="plbl">Garantie</div><div class="pval">${o.garantie_mois ? o.garantie_mois + " mois" : "—"}</div></div>
+          <div class="price-cell"><div class="plbl">Charges</div><div class="pval" style="font-size:11px;">${o.charges_incluses ? "Incluses" : "Non incl."}</div></div>
+        </div>
+        ${o.statut !== "louee" ? `
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-o btn-sm" onclick="go('modifier_offre',{id:${o.offre_id}})">✏️ Modifier</button>
+            <button class="btn btn-o btn-sm" style="${o.statut==='active'?'color:var(--RD);':'color:var(--GR);'}" onclick="doToggleStatut(${o.offre_id},'${o.statut==='active'?'suspendue':'active'}')">${o.statut==='active' ? '⏸ Suspendre' : '▶ Réactiver'}</button>
+          </div>` : ""}
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doToggleStatut(offreId, statut) {
+  try { await api(`/offres/${offreId}/statut`, { method: "POST", body: JSON.stringify({ statut }) }); toast("Offre mise à jour.", "✅"); loadMesOffres(); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Abonnements (locataire → bailleur/agence) ── */
+async function ensureAbonnementsCache() {
+  if (state.cache.abonnesIds) return state.cache.abonnesIds;
+  try {
+    const r = await api("/abonnements/mine");
+    state.cache.abonnesIds = new Set(r.abonnements.map(a => a.bailleur_id));
+  } catch { state.cache.abonnesIds = new Set(); }
+  return state.cache.abonnesIds;
+}
+function renderAbonnementBtn(bailleurId) {
+  const el = document.getElementById("abBtn");
+  if (!el) return;
+  const following = state.cache.abonnesIds && state.cache.abonnesIds.has(bailleurId);
+  el.className = "btn " + (following ? "btn-o" : "btn-n");
+  el.textContent = following ? "✓ Abonné — appuyez pour vous désabonner" : "⭐ Suivre ce bailleur";
+}
+async function toggleAbonnement(bailleurId) {
+  const ids = await ensureAbonnementsCache();
+  const following = ids.has(bailleurId);
+  try {
+    if (following) {
+      await api("/abonnements/" + bailleurId, { method: "DELETE" });
+      ids.delete(bailleurId);
+      toast("Désabonné.", "👋");
+    } else {
+      await api("/abonnements", { method: "POST", body: JSON.stringify({ bailleur_id: bailleurId }) });
+      ids.add(bailleurId);
+      toast("Abonné ! Ses prochaines offres apparaîtront dans votre fil.", "⭐");
+    }
+  } catch (e) { toast(e.message, "⚠️"); return; }
+  if (state.page === "offre") renderAbonnementBtn(bailleurId);
+  else if (state.page === "abonnements") loadAbonnements();
+}
+
+function sAbonnements() {
+  setTimeout(loadAbonnements, 0);
+  return `<div id="abonnementsBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAbonnements() {
+  const box = document.getElementById("abonnementsBox");
+  box.innerHTML = `<div class="center muted">Chargement…</div>`;
+  try {
+    const [ra, rf] = await Promise.all([api("/abonnements/mine"), api("/abonnements/fil")]);
+    state.cache.abonnesIds = new Set(ra.abonnements.map(a => a.bailleur_id));
+
+    if (!ra.abonnements.length) {
+      box.innerHTML = `<div class="center muted">Vous ne suivez encore aucun bailleur ni agence.<br>Ouvrez une offre et appuyez sur "⭐ Suivre ce bailleur" pour commencer.<br><span class="lnk" onclick="go('offres')">Parcourir les offres →</span></div>`;
+      return;
+    }
+
+    const listHtml = ra.abonnements.map(a => `
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="card-tt">${a.nom}</div>
+            <div class="card-sb">${a.role === "intermediaire" ? "Agence" : "Bailleur"} · ${a.offres_actives} offre${a.offres_actives > 1 ? "s" : ""} active${a.offres_actives > 1 ? "s" : ""}</div>
+          </div>
+          <button class="btn btn-o btn-sm" onclick="toggleAbonnement(${a.bailleur_id})">Se désabonner</button>
+        </div>
+      </div>`).join("");
+
+    const feedHtml = rf.offres.length ? rf.offres.map(o => `
+      <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
+        <div class="row">
+          <div>
+            <div class="card-tt">${o.titre}</div>
+            <div class="card-sb">📍 ${o.commune} · ${o.bailleur_nom}</div>
+          </div>
+          ${o.statut_verification !== "verifie" ? '<span class="bdg bdg-or">⏳ Vérification</span>' : '<span class="bdg bdg-gr">✓ Vérifié</span>'}
+        </div>
+        <div class="spec-row">
+          <span class="spec-chip"><span class="ic">${typeIcon(o.type)}</span>${capitalize(o.type)}</span>
+          <span class="spec-chip"><span class="ic">🛏</span>${o.chambres} ch.</span>
+        </div>
+        <div class="price-block">
+          <div class="price-cell accent"><div class="plbl">Loyer / mois</div><div class="pval">${o.loyer_usd} $</div></div>
+        </div>
+      </div>`).join("") : `<div class="center muted">Aucune offre récente de vos abonnements.</div>`;
+
+    box.innerHTML = `
+      <div class="row" style="margin-bottom:4px;">
+        <div class="h1" style="font-size:16px;">Bailleurs &amp; agences suivis</div>
+        <span class="lnk" onclick="go('classement')">🏆 Classement du mois</span>
+      </div>
+      <div id="abonList">${listHtml}</div>
+      <div class="h1" style="font-size:16px;margin-top:22px;">Leurs dernières offres</div>
+      <div id="abonFeed">${feedHtml}</div>
+    `;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Classement mensuel : bailleurs/agences par baux signés (30 derniers jours) ── */
+function sClassement() {
+  setTimeout(loadClassement, 0);
+  return `<div id="classementBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadClassement() {
+  const box = document.getElementById("classementBox");
+  try {
+    const r = await api("/abonnements/classement");
+    if (!r.classement.length) { box.innerHTML = `<div class="center muted">Aucun bail signé via IBS ces 30 derniers jours pour l'instant.</div>`; return; }
+    box.innerHTML = `
+      <div class="sub" style="margin-top:-6px;">Classé par baux signés via IBS sur les 30 derniers jours — pas par nombre d'annonces publiées.</div>
+      ${r.classement.map((b, i) => `
+        <div class="card">
+          <div class="row">
+            <div>
+              <div class="card-tt">${i < 3 ? ["🥇","🥈","🥉"][i] : "#" + (i + 1)} ${b.nom}</div>
+              <div class="card-sb">${b.role === "intermediaire" ? "Agence" : "Bailleur"} · ${TIER_ICON[b.tier.code] || "🏅"} Palier ${b.tier.nom}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:800;color:var(--N);font-size:15px;">${b.baux_signes_mois}</div>
+              <div style="font-size:10px;color:var(--TX3);">bail${b.baux_signes_mois > 1 ? "x" : ""} signé${b.baux_signes_mois > 1 ? "s" : ""}</div>
+            </div>
+          </div>
+        </div>`).join("")}
+    `;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Modifier une offre (bailleur) ── */
+function sModifierOffre() {
+  setTimeout(() => loadModifierOffre(state.params.id), 0);
+  return `<div id="modifierBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadModifierOffre(id) {
+  const box = document.getElementById("modifierBox");
+  try {
+    const r = await api("/offres/" + id);
+    const o = r.offre;
+    box.innerHTML = `
+      <div class="h1">Modifier l'offre</div>
+      <div class="fg"><label class="fl">Titre</label><input class="fi" id="mTitre" value="${o.titre}"></div>
+      <div class="fg"><label class="fl">Commune</label><input class="fi" id="mCommune" value="${o.commune}"></div>
+      <div class="fg"><label class="fl">Adresse</label><input class="fi" id="mAdresse" value="${o.adresse || ""}"></div>
+      <div style="display:flex;gap:10px;">
+        <div class="fg" style="flex:1;"><label class="fl">Chambres</label><input class="fi" id="mChambres" type="number" value="${o.chambres}"></div>
+        <div class="fg" style="flex:1;"><label class="fl">Loyer (USD/mois)</label><input class="fi" id="mLoyer" type="number" value="${o.loyer_usd}"></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div class="fg" style="flex:1;"><label class="fl">Garantie (mois)</label><input class="fi" id="mGarantie" type="number" value="${o.garantie_mois || ""}"></div>
+        <div class="fg" style="flex:1;"><label class="fl">Disponibilité</label>
+          <select class="fi" id="mDispo">
+            <option value="immediat" ${o.disponibilite==='immediat'?'selected':''}>Disponible immédiat</option>
+            <option value="sous_7j" ${o.disponibilite==='sous_7j'?'selected':''}>Sous 7 jours</option>
+            <option value="sous_30j" ${o.disponibilite==='sous_30j'?'selected':''}>Sous 30 jours</option>
+          </select>
+        </div>
+      </div>
+      <div class="chk${o.charges_incluses ? " on" : ""}" id="mCharges" onclick="this.classList.toggle('on')">
+        <div class="chk-box">✓</div><div class="chk-txt">Charges (eau, courant, sécurité) incluses dans le loyer</div>
+      </div>
+      ${eqGridHtml(o.equipements || [])}
+      <div class="fg"><label class="fl">Description</label><textarea class="fi" id="mDesc" rows="3">${o.description || ""}</textarea></div>
+      <div class="fg"><label class="fl">Photos actuelles</label>
+        <div id="mPhotosCurrent" class="photo-preview">
+          ${(o.photos || []).map((url, i) => `<div class="photo-thumb-wrap"><img src="${url}"><span class="photo-x" onclick="removeExistingPhoto(${i})">✕</span></div>`).join("")}
+        </div>
+        <label class="fl" style="margin-top:10px;">Ajouter des photos</label>
+        <input class="fi" id="mPhotos" type="file" accept="image/*" multiple onchange="previewPhotos(this,'mPhotosPreview')">
+        <div id="mPhotosPreview" class="photo-preview"></div>
+      </div>
+      <button class="btn btn-g" id="btnModifier" onclick="doModifierOffre(${o.offre_id})">Enregistrer les modifications</button>`;
+    state.cache.mExistingPhotos = (o.photos || []).slice();
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function removeExistingPhoto(index) {
+  state.cache.mExistingPhotos.splice(index, 1);
+  const wraps = document.querySelectorAll("#mPhotosCurrent .photo-thumb-wrap");
+  if (wraps[index]) wraps[index].remove();
+}
+async function doModifierOffre(id) {
+  const titre = val("mTitre"), commune = val("mCommune"), loyer_usd = val("mLoyer");
+  if (!titre || !commune || !loyer_usd) return toast("Titre, commune et loyer sont requis.", "⚠️");
+  setBusy("btnModifier", true);
+  try {
+    const nouveauxFichiers = Array.from(document.getElementById("mPhotos").files).slice(0, 8);
+    const nouvellesUrls = nouveauxFichiers.length ? await uploadPhotosToCloudinary(nouveauxFichiers) : [];
+    const photos = [...(state.cache.mExistingPhotos || []), ...nouvellesUrls].slice(0, 8);
+    await api(`/offres/${id}`, { method: "PATCH", body: JSON.stringify({
+      titre, commune, adresse: val("mAdresse"), chambres: Number(val("mChambres") || 1),
+      loyer_usd: Number(loyer_usd), description: val("mDesc"),
+      garantie_mois: val("mGarantie") ? Number(val("mGarantie")) : null,
+      charges_incluses: document.getElementById("mCharges").classList.contains("on"),
+      equipements: selectedEq(), disponibilite: val("mDispo"), photos,
+    })});
+    toast("Offre mise à jour.", "✅");
+    go("mine");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnModifier", false); }
+}
+
+/* ── Mes candidatures (locataire) ── */
+function sMesCandidatures() {
+  setTimeout(loadMesCandidatures, 0);
+  return `<div id="mesCandBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadMesCandidatures() {
+  const box = document.getElementById("mesCandBox");
+  try {
+    const r = await api("/demandes/mine");
+    if (!r.demandes.length) { box.innerHTML = `<div class="center muted">Aucune candidature pour l'instant.<br><span class="lnk" onclick="go('offres')">Chercher un logement →</span></div>`; return; }
+    box.innerHTML = r.demandes.map(d => `
+      <div class="card" ${d.contrat_id ? `onclick="go('contrat',{id:${d.contrat_id}})" style="cursor:pointer;"` : ""}>
+        <div class="card-tt">${d.titre}</div>
+        <div class="card-sb">${d.commune} · ${d.loyer_usd} USD/mois</div>
+        ${candidatureStepperHtml(d)}
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+function candidatureStepperHtml(d) {
+  if (d.statut === "refusee") {
+    return `<div class="bdg bdg-rd" style="margin-top:10px;display:inline-block;">Non retenue</div>`;
+  }
+  const steps = ["Envoyée", "Sélectionnée", "Contrat", "Signé"];
+  let idx = 0;
+  if (d.contrat_id) {
+    idx = d.contrat_statut === "signe" ? 3 : 2;
+  } else if (d.statut === "selectionnee") {
+    idx = 1;
+  }
+  return `<div class="stepper">
+    ${steps.map((s, i) => `
+      <div class="step ${i < idx ? "done" : i === idx ? "current" : ""}">
+        <div class="step-line"></div>
+        <div class="dot">${i < idx ? "✓" : i + 1}</div>
+        <div class="step-label">${s}</div>
+      </div>`).join("")}
+  </div>`;
+}
+
+/* ── Mes contrats (bailleur ou locataire) ── */
+function sMesContrats() {
+  setTimeout(loadMesContrats, 0);
+  return `<div id="mesContratsBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadMesContrats() {
+  const box = document.getElementById("mesContratsBox");
+  try {
+    const r = await api("/contrats");
+    if (!r.contrats.length) { box.innerHTML = `<div class="center muted">Aucun contrat pour l'instant.</div>`; return; }
+    const labels = { brouillon: "En préparation", en_confirmation: "Confirmation requise", en_signature: "Signature en cours", signe: "Signé", annule: "Annulé" };
+    const badgeClass = { signe: "bdg-gr", annule: "bdg-rd" };
+    box.innerHTML = r.contrats.map(c => `
+      <div class="card" onclick="go('contrat',{id:${c.id}})" style="cursor:pointer;">
+        <div class="row"><span class="card-tt">${c.titre}</span><span class="bdg ${badgeClass[c.statut] || 'bdg-or'}">${labels[c.statut] || c.statut}</span></div>
+        <div class="card-sb">${c.commune} · ${c.loyer_usd} USD/mois · ${c.duree_mois} mois</div>
+        ${c.reference_signature ? `<div class="card-sb" style="margin-top:4px;">Réf. ${c.reference_signature}</div>` : ""}
+        ${c.jours_restants !== null && c.jours_restants !== undefined && c.jours_restants <= 30 && c.jours_restants >= 0 ? `
+          <div class="card-sb" style="margin-top:8px;color:#9C4A2E;font-weight:700;">⏰ Ce bail se termine dans ${c.jours_restants} jour${c.jours_restants > 1 ? "s" : ""} (${c.date_fin})</div>` : ""}
+        ${c.statut === "signe" ? `
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('carnet_loyer',{id:${c.id}})">📒 Carnet de loyer</button>
+            ${state.user.role === "locataire" ? `<button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('avis_form',{id:${c.id}})">⭐ Avis</button>` : ""}
+          </div>` : ""}
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Carnet numérique de loyer (locataire ou bailleur, contrat signé) ── */
+function sCarnetLoyer(contratId) {
+  setTimeout(() => loadCarnetLoyer(contratId), 0);
+  return `<div id="carnetBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadCarnetLoyer(contratId) {
+  const box = document.getElementById("carnetBox");
+  try {
+    const r = await api(`/paiements/contrat/${contratId}`);
+    const STATUT_LABEL = { paye: "✓ Payé", en_retard: "⚠️ En retard", du_ce_mois: "🕐 Dû ce mois-ci", a_venir: "À venir" };
+    const STATUT_CLASS = { paye: "bdg-gr", en_retard: "bdg-rd", du_ce_mois: "bdg-or", a_venir: "" };
+    const moisFr = (cle) => {
+      const [an, m] = cle.split("-");
+      return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"][Number(m) - 1] + " " + an;
+    };
+    box.innerHTML = `
+      ${r.mois_en_retard > 0 ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;margin-bottom:14px;"><div class="card-tt" style="color:#9C4A2E;">⚠️ ${r.mois_en_retard} mois en retard</div><div class="card-sb">À régulariser au plus vite avec l'autre partie.</div></div>` : ""}
+      ${r.echeancier.map(e => `
+        <div class="card">
+          <div class="row">
+            <span class="card-tt">${moisFr(e.mois)}</span>
+            <span class="bdg ${STATUT_CLASS[e.statut] || "bdg-or"}">${STATUT_LABEL[e.statut] || e.statut}</span>
+          </div>
+          <div class="card-sb">${e.montant_usd} USD${e.moyen ? " · " + e.moyen : ""}</div>
+          ${e.statut !== "paye" && e.statut !== "a_venir" ? `<button class="btn btn-g btn-sm" style="margin-top:10px;" onclick="doMarquerPaye(${contratId},'${e.mois}',${e.montant_usd})">Marquer payé</button>` : ""}
+        </div>`).join("")}
+    `;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doMarquerPaye(contratId, mois, montant) {
+  try {
+    await api("/paiements", { method: "POST", body: JSON.stringify({ contrat_id: contratId, mois, montant_usd: montant }) });
+    toast("Mois marqué comme payé.", "✅");
+    loadCarnetLoyer(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Avis sur le bailleur (locataire, contrat signé) ── */
+function sAvisForm(contratId) {
+  setTimeout(() => loadAvisForm(contratId), 0);
+  return `<div id="avisBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAvisForm(contratId) {
+  const box = document.getElementById("avisBox");
+  try {
+    const r = await api(`/avis/mine/${contratId}`);
+    const existant = r.avis;
+    const note = existant ? existant.note : 0;
+    box.innerHTML = `
+      <div class="h1" style="font-size:16px;">${existant ? "Modifier votre avis" : "Comment s'est passée votre location ?"}</div>
+      <div id="starRow" style="display:flex;gap:8px;margin:14px 0;font-size:30px;">
+        ${[1,2,3,4,5].map(n => `<span class="star" data-n="${n}" onclick="setStar(${n})" style="cursor:pointer;color:${n <= note ? "var(--G)" : "#DCD3BC"};">★</span>`).join("")}
+      </div>
+      <div class="fg"><label class="fl">Commentaire (optionnel)</label><textarea class="fi" id="avisCommentaire" rows="3" placeholder="Votre expérience avec ce bailleur…">${existant && existant.commentaire ? existant.commentaire : ""}</textarea></div>
+      <button class="btn btn-g" id="btnAvis" onclick="doSubmitAvis(${contratId})">${existant ? "Mettre à jour mon avis" : "Envoyer mon avis"}</button>
+    `;
+    state.cache.starValue = note;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+function setStar(n) {
+  state.cache.starValue = n;
+  document.querySelectorAll("#starRow .star").forEach(el => {
+    el.style.color = Number(el.dataset.n) <= n ? "var(--G)" : "#DCD3BC";
+  });
+}
+async function doSubmitAvis(contratId) {
+  const note = state.cache.starValue || 0;
+  if (!note) { toast("Sélectionnez une note en étoiles.", "⚠️"); return; }
+  try {
+    await api("/avis", { method: "POST", body: JSON.stringify({ contrat_id: contratId, note, commentaire: val("avisCommentaire") }) });
+    toast("Merci pour votre avis !", "⭐");
+    go("mes_contrats");
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Messagerie interne locataire ↔ bailleur ── */
+function sThreadsList() {
+  setTimeout(loadThreadsList, 0);
+  return `<div id="threadsBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadThreadsList() {
+  const box = document.getElementById("threadsBox");
+  try {
+    const r = await api("/messages");
+    if (!r.threads.length) { box.innerHTML = `<div class="center muted">Aucune conversation pour l'instant.<br>${state.user.role === "locataire" ? "Ouvrez une offre et appuyez sur \"💬 Message\" pour contacter un bailleur." : "Les locataires qui vous contactent apparaîtront ici."}</div>`; return; }
+    box.innerHTML = r.threads.map(t => `
+      <div class="card" style="cursor:pointer;" onclick="go('thread',{offre_id:${t.offre_id},locataire_id:${state.user.role === "locataire" ? state.user.id : t.locataire_id}})">
+        <div class="row">
+          <div>
+            <div class="card-tt">${t.interlocuteur_nom}</div>
+            <div class="card-sb">Au sujet de : ${t.offre_titre}</div>
+          </div>
+          ${t.non_lus > 0 ? `<span class="bdg bdg-or">${t.non_lus} nouveau${t.non_lus > 1 ? "x" : ""}</span>` : ""}
+        </div>
+        <div class="card-sb" style="margin-top:6px;font-style:italic;">${t.dernier_message.length > 80 ? t.dernier_message.slice(0, 80) + "…" : t.dernier_message}</div>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+function sThread(offreId, locataireId) {
+  setTimeout(() => loadThread(offreId, locataireId), 0);
+  return `<div id="threadBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadThread(offreId, locataireId) {
+  const box = document.getElementById("threadBox");
+  try {
+    const r = await api(`/messages/${offreId}/${locataireId}`);
+    box.innerHTML = `
+      <div class="sub" style="margin-top:-6px;margin-bottom:14px;">Au sujet de : <b>${r.titre_offre}</b></div>
+      <div id="threadMsgs" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+        ${r.messages.length ? r.messages.map(m => `
+          <div style="align-self:${m.expediteur_id === state.user.id ? "flex-end" : "flex-start"};max-width:80%;">
+            <div style="background:${m.expediteur_id === state.user.id ? "var(--N)" : "var(--IVD)"};color:${m.expediteur_id === state.user.id ? "#fff" : "var(--TX)"};padding:10px 13px;border-radius:14px;font-size:13.5px;">
+              ${m.contenu}
+            </div>
+            <div style="font-size:10px;color:var(--TX3);margin-top:3px;${m.expediteur_id === state.user.id ? "text-align:right;" : ""}">${m.expediteur_nom.split(" ")[0]}</div>
+          </div>`).join("") : `<div class="center muted">Aucun message pour l'instant — écrivez le premier.</div>`}
+      </div>
+      <div class="fg"><textarea class="fi" id="threadInput" rows="2" placeholder="Votre message…"></textarea></div>
+      <button class="btn btn-g" onclick="doSendMessage(${offreId},${locataireId})">Envoyer</button>
+    `;
+    const msgsEl = document.getElementById("threadMsgs");
+    if (msgsEl) msgsEl.scrollIntoView({ block: "end" });
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doSendMessage(offreId, locataireId) {
+  const contenu = val("threadInput");
+  if (!contenu) return;
+  try {
+    await api("/messages", { method: "POST", body: JSON.stringify({ offre_id: offreId, locataire_id: locataireId, contenu }) });
+    loadThread(offreId, locataireId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+function sDemandes() {
+  setTimeout(loadDemandes, 0);
+  return `<div id="demBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadDemandes() {
+  const box = document.getElementById("demBox");
+  try {
+    const r = await api("/demandes/recues");
+    if (!r.demandes.length) { box.innerHTML = `<div class="center muted">Aucune candidature reçue pour l'instant.</div>`; return; }
+    box.innerHTML = r.demandes.map(d => `
+      <div class="card">
+        <div class="row"><span class="card-tt">${d.locataire_nom}</span><span class="bdg ${d.statut==='selectionnee'?'bdg-gr':d.statut==='refusee'?'bdg-rd':'bdg-or'}">${d.statut}</span></div>
+        <div class="card-sb">Pour : ${d.titre}</div>
+        ${(d.profession || d.revenu_usd || d.nb_occupants) ? `
+        <div class="spec-row">
+          ${d.profession ? `<span class="spec-chip"><span class="ic">💼</span>${d.profession}</span>` : ""}
+          ${d.revenu_usd ? `<span class="spec-chip"><span class="ic">💵</span>${d.revenu_usd} $/mois</span>` : ""}
+          ${d.nb_occupants ? `<span class="spec-chip"><span class="ic">👪</span>${d.nb_occupants} occupant${d.nb_occupants > 1 ? "s" : ""}</span>` : ""}
+        </div>` : ""}
+        ${d.message ? `<div class="card-sb" style="margin-top:4px;font-style:italic;">"${d.message}"</div>` : ""}
+        ${d.statut === "en_attente" ? `<button class="btn btn-g btn-sm" style="margin-top:10px;" onclick="doSelectionner(${d.demande_id})">Sélectionner ce candidat</button>` : ""}
+        ${d.statut === "selectionnee" ? `<button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="go('mine')">Voir dans Mes offres</button>` : ""}
+        <button class="btn btn-o btn-sm" style="margin-top:8px;" onclick="go('thread',{offre_id:${d.offre_id},locataire_id:${d.locataire_id}})">💬 Message</button>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function doSelectionner(demandeId) {
+  try {
+    const r = await api(`/demandes/${demandeId}/selectionner`, { method: "POST" });
+    toast("Candidat sélectionné, contrat créé.", "🎉");
+    go("contrat", { id: r.contrat_id });
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Contrat : préparer → confirmer → signer ── */
+function sContrat() {
+  setTimeout(() => loadContrat(state.params.id), 0);
+  return `<div id="contratBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadContrat(id) {
+  const box = document.getElementById("contratBox");
+  try {
+    const r = await api("/contrats/" + id);
+    box.innerHTML = renderContrat(r.contrat);
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+function renderContrat(c) {
+  const isBailleur = state.user.id === c.bailleur_id;
+  let body = "";
+
+  if (c.statut === "brouillon") {
+    body = isBailleur ? `
+      <div class="fg"><label class="fl">Durée du bail</label><select class="fi" id="cDuree"><option>12 mois</option><option>24 mois</option><option>36 mois</option></select></div>
+      <div class="fg"><label class="fl">Réception des loyers</label><input class="fi" id="cReception" placeholder="ex : M-Pesa +243 8XX XXX XXX"></div>
+      <button class="btn btn-g" onclick="doPreparer(${c.id})">Continuer →</button>
+    ` : `<div class="center muted">En attente que le bailleur prépare le contrat…</div>`;
+  } else if (c.statut === "en_confirmation" || (c.statut === "en_signature" && !(isBailleur ? c.confirme_bailleur : c.confirme_locataire))) {
+    body = `
+      <div class="card">
+        <div class="card-tt">Identité</div>
+        <div class="st"><div class="st-k">Nom</div><div class="st-v">${isBailleur ? c.bailleur_nom : c.locataire_nom}</div></div>
+        <div class="st"><div class="st-k">Téléphone</div><div class="st-v">${isBailleur ? c.bailleur_telephone : c.locataire_telephone}</div></div>
+        <div class="st"><div class="st-k">Identité vérifiée</div><div class="st-v">${(isBailleur ? c.bailleur_cni_statut : c.locataire_cni_statut) === "verifie" ? "✓ Oui" : "⏳ En attente"}</div></div>
+      </div>
+      <div class="chk on" id="chk1" onclick="toggleChk('chk1')"><div class="chk-box">✓</div><div class="chk-txt">J'atteste l'exactitude des informations ci-dessus.</div></div>
+      <div class="chk on" id="chk2" onclick="toggleChk('chk2')"><div class="chk-box">✓</div><div class="chk-txt">J'accepte le traitement de mes données pour ce bail.</div></div>
+      <div class="chk on" id="chk3" onclick="toggleChk('chk3')"><div class="chk-box">✓</div><div class="chk-txt">Je consens à recevoir mon carnet de loyer et mes alertes SMS.</div></div>
+      <button class="btn btn-g" onclick="doConfirmer(${c.id})">Continuer vers la signature →</button>
+    `;
+  } else if (c.statut === "en_signature") {
+    body = `
+      <div class="center">
+        <div style="font-size:30px;">🔏</div>
+        <div class="sub">Un code de signature a été envoyé au <b>${isBailleur ? c.bailleur_telephone : c.locataire_telephone}</b></div>
+      </div>
+      <div class="fg"><input class="fi" id="sigCode" placeholder="Code reçu par SMS" style="text-align:center;letter-spacing:5px;font-weight:700;"></div>
+      <button class="btn btn-g" onclick="doSigner(${c.id})">Signer électroniquement</button>
+      <div class="center" style="padding-top:10px;"><span class="lnk" onclick="doResendSig(${c.id})">Renvoyer le code</span></div>
+      <div class="center" style="padding-top:12px;"><span class="lnk" style="color:var(--TX3);" onclick="showDevOtp('${isBailleur ? c.bailleur_telephone : c.locataire_telephone}','signature')">🔧 Voir le code (mode test)</span></div>
+    `;
+  } else if (c.statut === "signe") {
+    body = `
+      <div class="card" style="background:var(--N);border:none;">
+        <div class="center">
+          <div style="font-size:14px;color:var(--G);font-weight:800;">✓</div>
+          <div style="color:#fff;font-weight:800;font-family:var(--fd);margin-top:6px;">Bail signé électroniquement</div>
+          <div style="color:var(--TX3);font-size:11px;margin-top:6px;">Réf. ${c.reference_signature}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-tt">Contrat de bail</div>
+        <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${c.bailleur_nom}</div></div>
+        <div class="st"><div class="st-k">Locataire</div><div class="st-v">${c.locataire_nom}</div></div>
+        <div class="st"><div class="st-k">Bien</div><div class="st-v">${c.titre}</div></div>
+        <div class="st"><div class="st-k">Adresse</div><div class="st-v">${c.adresse || c.commune}</div></div>
+        <div class="st"><div class="st-k">Loyer mensuel</div><div class="st-v">${c.loyer_usd} USD</div></div>
+        <div class="st"><div class="st-k">Durée</div><div class="st-v">${c.duree_mois} mois</div></div>
+        <div class="st"><div class="st-k">Commission IBS</div><div class="st-v">${c.commission_usd} USD</div></div>
+        <div class="st"><div class="st-k">Réception des loyers</div><div class="st-v">${c.reception_loyer || "—"}</div></div>
+        <div class="st"><div class="st-k">Signé le</div><div class="st-v">${new Date(c.signed_at).toLocaleString("fr-FR")}</div></div>
+        <div class="st"><div class="st-k">Empreinte du document</div><div class="st-v" style="font-size:9.5px;word-break:break-all;">${c.contenu_hash}</div></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--TX3);line-height:1.6;">Ces informations font foi et restent consultables ici à tout moment depuis "Mes contrats".</div>
+      <button class="btn btn-g" style="margin-top:12px;" onclick="telechargerPdf(${c.id})">📄 Télécharger le PDF du contrat</button>`;
+  }
+
+  return `
+  <div class="h1">${c.titre}</div>
+  <div class="sub">${c.commune} · ${c.loyer_usd} USD/mois · Commission IBS : ${c.commission_usd} USD</div>
+  ${body}`;
+}
+function toggleChk(id) { document.getElementById(id).classList.toggle("on"); }
+function telechargerPdf(id) {
+  window.open(`${API_BASE}/contrats/${id}/pdf?token=${encodeURIComponent(state.token)}`, "_blank");
+}
+async function doPreparer(id) {
+  try {
+    await api(`/contrats/${id}/preparer`, { method: "POST", body: JSON.stringify({
+      duree_mois: parseInt(val("cDuree")), reception_loyer: val("cReception"),
+    })});
+    toast("Contrat prêt pour confirmation.", "✅");
+    loadContrat(id);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+async function doConfirmer(id) {
+  const allOn = ["chk1","chk2","chk3"].every(x => document.getElementById(x).classList.contains("on"));
+  if (!allOn) return toast("Les trois engagements doivent être acceptés.", "⚠️");
+  try {
+    await api(`/contrats/${id}/confirmer`, { method: "POST", body: JSON.stringify({
+      atteste_exactitude: true, accepte_traitement_donnees: true, consent_alertes: true,
+    })});
+    toast("Confirmé. Code de signature envoyé.", "📩");
+    loadContrat(id);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+async function doSigner(id) {
+  const code = val("sigCode");
+  if (!code) return toast("Saisissez le code reçu par SMS.", "⚠️");
+  try {
+    const r = await api(`/contrats/${id}/signer`, { method: "POST", body: JSON.stringify({ code }) });
+    toast(r.message, r.statut === "signe" ? "🔏" : "✅");
+    loadContrat(id);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+async function doResendSig(id) {
+  try { await api(`/contrats/${id}/renvoyer-otp-signature`, { method: "POST" }); toast("Nouveau code envoyé.", "📩"); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Admin : CNI ── */
+function sAdminCni() {
+  setTimeout(loadAdminCni, 0);
+  return `<div id="adminCniBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAdminCni() {
+  const box = document.getElementById("adminCniBox");
+  try {
+    const r = await api("/auth/admin/cni-pending");
+    if (!r.users.length) { box.innerHTML = `<div class="center muted">Aucune CNI en attente. 🎉</div>`; return; }
+    box.innerHTML = r.users.map(u => `
+      <div class="card">
+        <div class="row"><span class="card-tt">${u.nom}</span><span class="bdg bdg-or">${roleLabel(u.role)}</span></div>
+        <div class="card-sb">${u.telephone}</div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-g btn-sm" onclick="reviewCni(${u.id},'verifie')">✓ Valider</button>
+          <button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="reviewCni(${u.id},'rejete')">✕ Rejeter</button>
+        </div>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function reviewCni(id, decision) {
+  try { await api(`/auth/admin/cni-review/${id}`, { method: "POST", body: JSON.stringify({ decision }) }); toast("Décision enregistrée.", "✅"); loadAdminCni(); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Admin : biens (titres de propriété) ── */
+function sAdminBiens() {
+  setTimeout(loadAdminBiens, 0);
+  return `<div id="adminBiensBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAdminBiens() {
+  const box = document.getElementById("adminBiensBox");
+  try {
+    const r = await api("/offres/admin/verification-pending");
+    if (!r.proprietes.length) { box.innerHTML = `<div class="center muted">Aucun bien en attente. 🎉</div>`; return; }
+    box.innerHTML = r.proprietes.map(p => `
+      <div class="card">
+        <div class="row"><span class="card-tt">${p.titre}</span><span class="bdg bdg-or">⏳ En attente</span></div>
+        <div class="card-sb">${p.commune} · Bailleur : ${p.bailleur_nom}</div>
+        <div class="card-sb" style="margin-top:4px;">📎 ${p.titre_propriete_url || "Aucun justificatif fourni"}</div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-g btn-sm" onclick="reviewBien(${p.id},'verifie')">✓ Valider</button>
+          <button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="reviewBien(${p.id},'rejete')">✕ Rejeter</button>
+        </div>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function reviewBien(id, decision) {
+  try { await api(`/offres/admin/verify-propriete/${id}`, { method: "POST", body: JSON.stringify({ decision }) }); toast("Décision enregistrée.", "✅"); loadAdminBiens(); }
+  catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Admin : stats ── */
+function sAdminStats() {
+  setTimeout(loadAdminStats, 0);
+  return `<div id="statsBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadAdminStats() {
+  const box = document.getElementById("statsBox");
+  try {
+    const r = await api("/admin/stats");
+    const f = r.entonnoir, iv = r.indicateurs_v0;
+    box.innerHTML = `
+      <div class="card"><div class="card-tt">Entonnoir d'adoption</div>
+        <div class="st"><div class="st-k">Comptes créés</div><div class="st-v">${f.comptes_crees} (${f.dont_bailleurs} bailleurs · ${f.dont_locataires} locataires)</div></div>
+        <div class="st"><div class="st-k">Identités vérifiées</div><div class="st-v">${f.identites_verifiees}</div></div>
+        <div class="st"><div class="st-k">Offres publiées</div><div class="st-v">${f.offres_publiees}</div></div>
+        <div class="st"><div class="st-k">Candidatures</div><div class="st-v">${f.candidatures}</div></div>
+        <div class="st"><div class="st-k">Contrats en cours</div><div class="st-v">${f.contrats_en_cours}</div></div>
+        <div class="st"><div class="st-k">Contrats signés</div><div class="st-v">${f.contrats_signes}</div></div>
+      </div>
+      <div class="card"><div class="card-tt">Signaux V0 (seuils de succès)</div>
+        <div class="st"><div class="st-k">Candidatures / offre</div><div class="st-v">${iv.candidatures_par_offre.valeur} (fort ≥${iv.candidatures_par_offre.seuil_fort})</div></div>
+        <div class="st"><div class="st-k">Taux conversion → signature</div><div class="st-v">${iv.taux_conversion_compte_vers_signature_pct}%</div></div>
+        <div class="st"><div class="st-k">Bailleurs qui repostent</div><div class="st-v">${iv.taux_bailleurs_qui_repostent_pct.valeur}% (fort ≥${iv.taux_bailleurs_qui_repostent_pct.seuil_fort}%)</div></div>
+      </div>`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Profil ── */
+/* ── Notifications ── */
+function sNotifications() {
+  setTimeout(loadNotifications, 0);
+  return `<div id="notifBox"><div class="center muted">Chargement…</div></div>`;
+}
+async function loadNotifications() {
+  const box = document.getElementById("notifBox");
+  try {
+    const r = await api("/notifications");
+    await api("/notifications/marquer-lu", { method: "POST" });
+    if (!r.notifications.length) { box.innerHTML = `<div class="center muted">Aucune notification pour l'instant.</div>`; return; }
+    box.innerHTML = r.notifications.map(n => `
+      <div class="card" style="${n.lu ? '' : 'border-color:var(--G);'}">
+        <div class="card-sb" style="color:var(--TX);">${n.message}</div>
+        <div class="card-sb" style="margin-top:4px;font-size:10px;">${new Date(n.created_at).toLocaleString("fr-FR")}</div>
+      </div>`).join("");
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+async function loadNotifBadge() {
+  const badge = document.getElementById("notifBadge");
+  if (!badge) return;
+  try {
+    const r = await api("/notifications");
+    if (r.non_lues > 0) badge.innerHTML = `<span class="bdg bdg-or">${r.non_lues}</span>`;
+  } catch {}
+}
+
+function sProfil() {
+  const u = state.user;
+  return `
+  <div class="card">
+    <div class="card-tt">${u.nom}</div>
+    <div class="st"><div class="st-k">Rôle</div><div class="st-v">${roleLabel(u.role)}</div></div>
+    ${u.role === "intermediaire" ? `
+    <div class="st"><div class="st-k">Agence</div><div class="st-v">${u.nom_agence || "—"}</div></div>
+    <div class="st"><div class="st-k">Agrément / RCCM</div><div class="st-v">${u.agrement_ou_rccm || "—"}</div></div>` : ""}
+    <div class="st"><div class="st-k">Téléphone</div><div class="st-v">${u.telephone}</div></div>
+    <div class="st"><div class="st-k">Commune</div><div class="st-v">${u.commune || "—"}</div></div>
+    <div class="st"><div class="st-k">Identité</div><div class="st-v">${u.cni_statut === "verifie" ? "✓ Vérifiée" : "⏳ En attente"}</div></div>
+  </div>
+  ${u.role === "locataire" ? `
+  <div class="card" style="margin-top:14px;">
+    <div class="card-tt" style="margin-bottom:10px;">📋 Dossier locataire</div>
+    <div class="card-sb" style="margin-bottom:14px;">Ces informations accompagnent automatiquement vos candidatures, pour rassurer le bailleur sans avoir à les retaper.</div>
+    <div class="fg"><label class="fl">Profession</label><input class="fi" id="pfProfession" placeholder="ex : Comptable" value="${u.profession || ""}"></div>
+    <div style="display:flex;gap:10px;">
+      <div class="fg" style="flex:1;"><label class="fl">Revenu mensuel (USD)</label><input class="fi" id="pfRevenu" type="number" placeholder="ex : 400" value="${u.revenu_usd || ""}"></div>
+      <div class="fg" style="flex:1;"><label class="fl">Nombre d'occupants</label><input class="fi" id="pfOccupants" type="number" placeholder="ex : 3" value="${u.nb_occupants || ""}"></div>
+    </div>
+    <button class="btn btn-g" onclick="doUpdateProfil()">Enregistrer mon dossier</button>
+  </div>` : ""}
+  <button class="btn btn-o" onclick="logout()" style="color:var(--RD);margin-top:14px;">Se déconnecter</button>`;
+}
+async function doUpdateProfil() {
+  try {
+    const r = await api("/auth/me", { method: "PATCH", body: JSON.stringify({
+      profession: val("pfProfession"), revenu_usd: val("pfRevenu"), nb_occupants: val("pfOccupants"),
+    })});
+    state.user = r.user;
+    toast("Dossier mis à jour.", "✅");
+    go("profil");
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── helpers ── */
+function typeIcon(t) { return { studio: "🏢", appartement: "🏠", maison: "🏡", villa: "🏰" }[t] || "🏠"; }
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
+
+const EQUIPEMENTS_LIST = [
+  { code: "climatisation", label: "Climatisation", ic: "❄️" },
+  { code: "parking", label: "Parking", ic: "🅿️" },
+  { code: "securite", label: "Sécurité", ic: "🛡" },
+  { code: "eau_5_5", label: "Eau 5/5", ic: "💧" },
+  { code: "courant_prepaye", label: "Courant prépayé", ic: "⚡" },
+  { code: "meuble", label: "Meublé", ic: "🛋" },
+];
+const DISPO_LABEL = { immediat: "Disponible immédiat", sous_7j: "Sous 7 jours", sous_30j: "Sous 30 jours" };
+const TIER_ICON = { debutant: "🥉", confirme: "🥈", reference: "🥇", elite: "💎" };
+function eqLabel(code) { const e = EQUIPEMENTS_LIST.find(x => x.code === code); return e ? `${e.ic} ${e.label}` : code; }
+function selectedEq(containerId) {
+  const scope = containerId ? document.getElementById(containerId) : document;
+  return Array.from((scope || document).querySelectorAll(".eq-item.on")).map(el => el.dataset.code);
+}
+function toggleEq(el) { el.classList.toggle("on"); }
+function eqGridHtml(checked = [], containerId = "") {
+  return `<div class="fg"${containerId ? ` id="${containerId}"` : ""}><label class="fl">Équipements</label>
+    <div class="eq-grid">${EQUIPEMENTS_LIST.map(e => `
+      <div class="eq-item${checked.includes(e.code) ? " on" : ""}" data-code="${e.code}" onclick="toggleEq(this)">
+        <span class="eq-ic">${e.ic}</span>${e.label}
+      </div>`).join("")}</div></div>`;
+}
+function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
+function setBusy(id, busy) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (busy) {
+    if (!el.dataset.label) el.dataset.label = el.innerHTML;
+    el.disabled = true;
+    el.innerHTML = '<span class="spin"></span>';
+  } else {
+    el.disabled = false;
+    if (el.dataset.label) el.innerHTML = el.dataset.label;
+  }
+}
+function wire() {}
+
+// PWA : n'enregistre le service worker que si l'app est réellement hébergée (http/https).
+// Depuis un fichier local (content://, file://), ceci ne fait rien — comportement normal, pas une erreur.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./IBS_sw.js").catch(() => {});
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
