@@ -355,6 +355,7 @@ function render() {
 function topbar() {
   const titles = {
     welcome:"", register:"Créer un compte", verify:"Vérification", login:"Connexion",
+    forgot:"Mot de passe oublié", reset:"Nouveau mot de passe",
     home:"", admin_home:"", offres:"Rechercher", offre:"Offre", publier:"Publier une offre", modifier_offre:"Modifier l'offre",
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
     admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", profil:"Mon profil", notifications:"Notifications",
@@ -401,6 +402,8 @@ function screen() {
     case "register": return REGISTRATION_OPEN ? sRegister() : sRegisterClosed();
     case "verify": return sVerify();
     case "login": return sLogin();
+    case "forgot": return sForgot();
+    case "reset": return sReset();
     case "home": return sHome();
     case "admin_home": return sAdminHome();
     case "offres": return sOffres();
@@ -571,6 +574,7 @@ function sLogin() {
   <div class="fg"><label class="fl">Téléphone</label><input class="fi" id="lTel" placeholder="+243 8XX XXX XXX"></div>
   <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="lPass" type="password" placeholder="Votre mot de passe"></div>
   <button class="btn btn-g" id="btnLogin" onclick="doLogin()">Se connecter</button>
+  <div class="center" style="padding-top:12px;"><span class="lnk" onclick="go('forgot')">Mot de passe oublié ?</span></div>
   ${REGISTRATION_OPEN ? `<div class="center" style="padding-top:14px;"><span class="muted">Pas encore de compte ? </span><span class="lnk" onclick="go('register')">S'inscrire</span></div>` : ""}`;
 }
 async function doLogin() {
@@ -587,6 +591,73 @@ async function doLogin() {
     if (e.message.includes("non vérifié")) { go("verify", { telephone }); return; }
     toast(e.message, "⚠️");
   } finally { setBusy("btnLogin", false); }
+}
+
+/* ── Mot de passe oublié ─────────────────────────────────────────────────
+   Deux étapes : on demande un code par SMS, puis on le saisit avec le
+   nouveau mot de passe. Le serveur répond la même chose que le numéro soit
+   inscrit ou non — on passe donc à l'étape 2 dans tous les cas, sans quoi
+   l'écran révélerait quels numéros existent sur IBS. */
+function sForgot() {
+  return `
+  <div class="center">
+    <div style="font-size:34px;">🔑</div>
+    <div class="h1">Mot de passe oublié</div>
+    <div class="sub">Saisissez le numéro de votre compte IBS.<br>Un code vous sera envoyé par SMS.</div>
+  </div>
+  <div class="fg"><label class="fl">Téléphone</label><input class="fi" id="fTel" placeholder="+243 8XX XXX XXX"></div>
+  <button class="btn btn-g" id="btnForgot" onclick="doForgot()">Recevoir le code</button>
+  <div class="center" style="padding-top:14px;"><span class="lnk" onclick="go('login')">Retour à la connexion</span></div>`;
+}
+
+async function doForgot() {
+  const telephone = val("fTel");
+  if (!telephone) return toast("Saisissez votre numéro.", "⚠️");
+  setBusy("btnForgot", true);
+  try {
+    await api("/auth/forgot-password", { method: "POST", body: JSON.stringify({ telephone }) });
+    toast("Si ce numéro est inscrit, un code vient d'être envoyé.", "📩");
+    go("reset", { telephone });
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnForgot", false); }
+}
+
+function sReset() {
+  const tel = state.params.telephone || "";
+  return `
+  <div class="center">
+    <div style="font-size:34px;">🔐</div>
+    <div class="h1">Nouveau mot de passe</div>
+    <div class="sub">Code envoyé au <b>${tel}</b><br>Le code est valable 5 minutes.</div>
+  </div>
+  <div class="fg"><label class="fl">Code reçu par SMS</label><input class="fi" id="rsCode" placeholder="6 chiffres" maxlength="6" style="text-align:center;letter-spacing:6px;font-size:18px;font-weight:700;"></div>
+  <div class="fg"><label class="fl">Nouveau mot de passe</label><input class="fi" id="rsPass" type="password" placeholder="6 caractères minimum"></div>
+  <div class="fg"><label class="fl">Confirmer</label><input class="fi" id="rsPass2" type="password" placeholder="Répétez le mot de passe"></div>
+  <button class="btn btn-g" id="btnReset" onclick="doReset('${tel}')">Changer mon mot de passe</button>
+  <div class="center" style="padding-top:12px;"><span class="lnk" onclick="doForgotAgain('${tel}')">Renvoyer le code</span></div>
+  <div class="center" style="padding-top:16px;"><span class="lnk" style="color:var(--TX3);" onclick="showDevOtp('${tel}','reinitialisation')">🔧 Voir le code (mode test)</span></div>`;
+}
+
+async function doForgotAgain(telephone) {
+  try {
+    await api("/auth/forgot-password", { method: "POST", body: JSON.stringify({ telephone }) });
+    toast("Nouveau code envoyé.", "📩");
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doReset(telephone) {
+  const code = val("rsCode"), nouveau_password = val("rsPass"), confirmation = val("rsPass2");
+  if (!code || !nouveau_password) return toast("Saisissez le code et le nouveau mot de passe.", "⚠️");
+  if (nouveau_password.length < 6) return toast("Le mot de passe doit faire au moins 6 caractères.", "⚠️");
+  if (nouveau_password !== confirmation) return toast("Les deux mots de passe ne correspondent pas.", "⚠️");
+  setBusy("btnReset", true);
+  try {
+    // Le serveur renvoie un jeton : inutile de repasser par l'écran de connexion.
+    const r = await api("/auth/reset-password", { method: "POST", body: JSON.stringify({ telephone, code, nouveau_password }) });
+    state.token = r.token; state.user = r.user;
+    localStorage.setItem("ibs_token", state.token);
+    toast("Mot de passe modifié — vous êtes connecté.", "✅");
+    go(state.user.role === "admin" ? "admin_home" : "home");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnReset", false); }
 }
 
 /* ── Home (bailleur/locataire) ── */
