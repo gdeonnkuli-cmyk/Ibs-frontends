@@ -410,7 +410,7 @@ function topbar() {
       ${back ? `<button class="tb-back" onclick="go(state.user ? (state.user.role==='admin'?'admin_home':'home') : 'welcome')">←</button>` : ""}
       ${t ? `<span class="tb-logo">${t}</span>` : `<img src="${LOGO_B64}" class="tb-logo-img" alt="IBS">`}
     </div>
-    ${state.user ? `<span class="tb-role">${roleLabel(state.user.role)} · ${state.user.nom.split(" ")[0]}</span>` : ""}
+    ${state.user ? `<span class="tb-role">${roleLabel(state.user.role)} · ${esc(state.user.nom.split(" ")[0])}</span>` : ""}
   </div>${!LOGIN_OPEN ? `<div class="beta" style="border-radius:0;text-align:center;">MODE DÉMO — connexion désactivée, écrans hors ligne du backend</div>` : ""}`;
 }
 
@@ -604,7 +604,7 @@ async function doResend(tel) {
 async function showDevOtp(tel, contexte) {
   try {
     const r = await api(`/auth/dev/last-otp?telephone=${encodeURIComponent(tel)}&contexte=${contexte}`);
-    if (r.code) toast(`Code de test : ${r.code}`, "🔧"); else toast("Aucun code trouvé.", "⚠️");
+    if (r.code) toast(`Code de test : ${esc(r.code)}`, "🔧"); else toast("Aucun code trouvé.", "⚠️");
   } catch (e) { toast(e.message, "⚠️"); }
 }
 
@@ -707,7 +707,7 @@ function sHome() {
   const cniOk = u.cni_statut === "verifie";
   setTimeout(loadNotifBadge, 0);
   return `
-  <div class="h1">Bonjour, ${u.nom.split(" ")[0]} 👋</div>
+  <div class="h1">Bonjour, ${esc(u.nom.split(" ")[0])} 👋</div>
   <div class="sub">${isBailleurLike(u.role) ? (u.role === "intermediaire" ? "Gérez les biens et candidatures de vos clients." : "Gérez vos biens et vos candidatures.") : "Trouvez votre prochain logement à Kinshasa."}</div>
   ${!cniOk ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;"><div class="row"><span class="bdg bdg-or">⏳ ${u.role === "intermediaire" ? "Vérification en attente" : "CNI en attente"}</span></div><div class="card-sb" style="margin-top:6px;">Votre identité${u.role === "intermediaire" ? " et votre agrément doivent être vérifiés" : " doit être vérifiée"} par l'équipe IBS avant de ${isBailleurLike(u.role)?'publier une offre':'candidater'}.</div></div>` : ""}
   <div class="card" onclick="go('notifications')" style="cursor:pointer;">
@@ -953,7 +953,7 @@ async function loadAlertes() {
     box.innerHTML = r.alertes.map(a => `
       <div class="card">
         <div class="row">
-          <div class="card-tt">${[a.commune, a.type ? capitalize(a.type) : null, a.budget_max ? "≤ " + a.budget_max + " $" : null].filter(Boolean).join(" · ") || "Toutes offres"}</div>
+          <div class="card-tt">${[esc(a.commune), a.type ? capitalize(a.type) : null, a.budget_max ? "≤ " + a.budget_max + " $" : null].filter(Boolean).join(" · ") || "Toutes offres"}</div>
           <span class="bdg ${a.actif ? "bdg-gr" : "bdg-rd"}">${a.actif ? "Active" : "Suspendue"}</span>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;">
@@ -1056,9 +1056,9 @@ async function loadAdminSignalements() {
     box.innerHTML = r.signalements.map(s => `
       <div class="card">
         <div class="row"><span class="card-tt">${esc(s.titre)}</span><span class="bdg ${stClass[s.statut]}">${stLabel[s.statut]}</span></div>
-        <div class="card-sb">📍 ${esc(s.commune)} · signalé par ${s.signale_par}</div>
+        <div class="card-sb">📍 ${esc(s.commune)} · signalé par ${esc(s.signale_par)}</div>
         <div class="card-sb" style="margin-top:6px;font-weight:700;color:var(--N);">${esc(s.motif)}</div>
-        ${s.details ? `<div class="card-sb" style="font-style:italic;">"${s.details}"</div>` : ""}
+        ${s.details ? `<div class="card-sb" style="font-style:italic;">"${esc(s.details)}"</div>` : ""}
         ${s.statut === "en_attente" ? `
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button class="btn btn-o btn-sm" onclick="go('offre',{id:${s.offre_id}})">Voir l'offre</button>
@@ -1092,8 +1092,8 @@ async function loadMesDocuments() {
       <div class="h1" style="font-size:16px;">Pièce d'identité</div>
       <div class="card">
         <div class="st"><div class="st-k">Statut</div><div class="st-v">${u.cni_statut === "verifie" ? "✓ Vérifiée" : "⏳ En attente"}</div></div>
-        ${u.cni_recto_url ? `<div class="st"><div class="st-k">Recto</div><div class="st-v"><a href="${u.cni_recto_url}" target="_blank" style="color:var(--N);">Voir le fichier</a></div></div>` : ""}
-        ${u.cni_verso_url ? `<div class="st"><div class="st-k">Verso</div><div class="st-v"><a href="${u.cni_verso_url}" target="_blank" style="color:var(--N);">Voir le fichier</a></div></div>` : ""}
+        ${u.cni_recto_url ? `<div class="st"><div class="st-k">Recto</div><div class="st-v"><a href="${esc(u.cni_recto_url)}" target="_blank" style="color:var(--N);">Voir le fichier</a></div></div>` : ""}
+        ${u.cni_verso_url ? `<div class="st"><div class="st-k">Verso</div><div class="st-v"><a href="${esc(u.cni_verso_url)}" target="_blank" style="color:var(--N);">Voir le fichier</a></div></div>` : ""}
       </div>
       <div class="h1" style="font-size:16px;margin-top:22px;">Baux signés</div>
       ${baux.length ? baux.map(c => `
@@ -1207,15 +1207,15 @@ async function loadOffreDetail(id) {
       ${(o.photos || []).length
         ? `<div class="gallery">${o.photos.map(u => `<img src="${u}" onclick="window.open('${u}','_blank')">`).join("")}</div>`
         : `<div class="gallery-placeholder">🏠<span>Aucune photo pour cette offre</span></div>`}
-      ${o.confiance ? `<div class="trust-badge trust-${o.confiance.code}">${o.confiance.icon} ${o.confiance.label}</div>` : ""}
+      ${o.confiance ? `<div class="trust-badge trust-${esc(o.confiance.code)}">${o.confiance.icon} ${o.confiance.label}</div>` : ""}
       <div class="row" style="align-items:flex-start;">
         <div class="h1" style="margin-bottom:0;">${esc(o.titre)}</div>
         <div style="display:flex;gap:6px;">
           ${canApply ? `<span class="fav-heart" id="favHeart" onclick="toggleFavori(${o.offre_id}, this)">${state.cache.favIds && state.cache.favIds.has(o.offre_id) ? "❤️" : "🤍"}</span>` : ""}
-          <span class="fav-heart" onclick='doPartagerOffre(${JSON.stringify(o.titre)},${JSON.stringify(o.commune)},${o.loyer_usd})'>📤</span>
+          <span class="fav-heart" onclick='doPartagerOffre(${esc(JSON.stringify(o.titre))},${esc(JSON.stringify(o.commune))},${o.loyer_usd})'>📤</span>
         </div>
       </div>
-      <div class="sub">📍 ${esc(o.commune)}${o.adresse ? " · " + o.adresse : ""}</div>
+      <div class="sub">📍 ${esc(o.commune)}${o.adresse ? " · " + esc(o.adresse) : ""}</div>
       <div class="spec-row">
         <span class="spec-chip"><span class="ic">${typeIcon(o.type)}</span>${capitalize(o.type)}</span>
         <span class="spec-chip"><span class="ic">🛏</span>${o.chambres} chambre${o.chambres > 1 ? "s" : ""}</span>
@@ -1504,7 +1504,7 @@ async function loadModifierOffre(id) {
       <div class="h1">Modifier l'offre</div>
       <div class="fg"><label class="fl">Titre</label><input class="fi" id="mTitre" value="${esc(o.titre)}"></div>
       <div class="fg"><label class="fl">Commune</label><input class="fi" id="mCommune" value="${esc(o.commune)}"></div>
-      <div class="fg"><label class="fl">Adresse</label><input class="fi" id="mAdresse" value="${o.adresse || ""}"></div>
+      <div class="fg"><label class="fl">Adresse</label><input class="fi" id="mAdresse" value="${esc(o.adresse || "")}"></div>
       <div style="display:flex;gap:10px;">
         <div class="fg" style="flex:1;"><label class="fl">Chambres</label><input class="fi" id="mChambres" type="number" value="${o.chambres}"></div>
         <div class="fg" style="flex:1;"><label class="fl">Loyer (USD/mois)</label><input class="fi" id="mLoyer" type="number" value="${o.loyer_usd}"></div>
@@ -1523,7 +1523,7 @@ async function loadModifierOffre(id) {
         <div class="chk-box">✓</div><div class="chk-txt">Charges (eau, courant, sécurité) incluses dans le loyer</div>
       </div>
       ${eqGridHtml(o.equipements || [])}
-      <div class="fg"><label class="fl">Description</label><textarea class="fi" id="mDesc" rows="3">${o.description || ""}</textarea></div>
+      <div class="fg"><label class="fl">Description</label><textarea class="fi" id="mDesc" rows="3">${esc(o.description || "")}</textarea></div>
       <div class="fg"><label class="fl">Photos actuelles</label>
         <div id="mPhotosCurrent" class="photo-preview">
           ${(o.photos || []).map((url, i) => `<div class="photo-thumb-wrap"><img src="${url}"><span class="photo-x" onclick="removeExistingPhoto(${i})">✕</span></div>`).join("")}
@@ -1616,7 +1616,7 @@ async function loadMesContrats() {
       <div class="card" onclick="go('contrat',{id:${c.id}})" style="cursor:pointer;">
         <div class="row"><span class="card-tt">${esc(c.titre)}</span><span class="bdg ${badgeClass[c.statut] || 'bdg-or'}">${labels[c.statut] || c.statut}</span></div>
         <div class="card-sb">${esc(c.commune)} · ${c.loyer_usd} USD/mois · ${c.duree_mois} mois</div>
-        ${c.reference_signature ? `<div class="card-sb" style="margin-top:4px;">Réf. ${c.reference_signature}</div>` : ""}
+        ${c.reference_signature ? `<div class="card-sb" style="margin-top:4px;">Réf. ${esc(c.reference_signature)}</div>` : ""}
         ${c.jours_restants !== null && c.jours_restants !== undefined && c.jours_restants <= 30 && c.jours_restants >= 0 ? `
           <div class="card-sb" style="margin-top:8px;color:#9C4A2E;font-weight:700;">⏰ Ce bail se termine dans ${c.jours_restants} jour${c.jours_restants > 1 ? "s" : ""} (${c.date_fin})</div>` : ""}
         ${c.statut === "signe" ? `
@@ -1696,7 +1696,7 @@ async function loadCarnetLoyer(contratId) {
             <span class="card-tt">${moisFr(e.mois)}</span>
             <span class="bdg ${STATUT_CLASS[e.statut] || "bdg-or"}">${STATUT_LABEL[e.statut] || e.statut}</span>
           </div>
-          <div class="card-sb">${e.montant_usd} USD${e.moyen ? " · " + e.moyen : ""}</div>
+          <div class="card-sb">${e.montant_usd} USD${e.moyen ? " · " + esc(e.moyen) : ""}</div>
           ${e.statut === "en_attente_confirmation" && !bailleur && e.declare_par_moi ? `<div class="card-sb" style="margin-top:6px;">En attente de confirmation par votre bailleur.</div>` : ""}
           ${e.motif_contestation ? `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">Motif : ${esc(e.motif_contestation)}</div>` : ""}
           ${actions(e)}
@@ -1789,7 +1789,7 @@ async function loadAvisForm(contratId) {
       <div id="starRow" style="display:flex;gap:8px;margin:14px 0;font-size:30px;">
         ${[1,2,3,4,5].map(n => `<span class="star" data-n="${n}" onclick="setStar(${n})" style="cursor:pointer;color:${n <= note ? "var(--G)" : "#DCD3BC"};">★</span>`).join("")}
       </div>
-      <div class="fg"><label class="fl">Commentaire (optionnel)</label><textarea class="fi" id="avisCommentaire" rows="3" placeholder="Votre expérience avec ce bailleur…">${existant && existant.commentaire ? existant.commentaire : ""}</textarea></div>
+      <div class="fg"><label class="fl">Commentaire (optionnel)</label><textarea class="fi" id="avisCommentaire" rows="3" placeholder="Votre expérience avec ce bailleur…">${existant && existant.commentaire ? esc(existant.commentaire) : ""}</textarea></div>
       <button class="btn btn-g" id="btnAvis" onclick="doSubmitAvis(${contratId})">${existant ? "Mettre à jour mon avis" : "Envoyer mon avis"}</button>
     `;
     state.cache.starValue = note;
@@ -1825,8 +1825,8 @@ async function loadThreadsList() {
       <div class="card" style="cursor:pointer;" onclick="go('thread',{offre_id:${t.offre_id},locataire_id:${state.user.role === "locataire" ? state.user.id : t.locataire_id}})">
         <div class="row">
           <div>
-            <div class="card-tt">${t.interlocuteur_nom}</div>
-            <div class="card-sb">Au sujet de : ${t.offre_titre}</div>
+            <div class="card-tt">${esc(t.interlocuteur_nom)}</div>
+            <div class="card-sb">Au sujet de : ${esc(t.offre_titre)}</div>
           </div>
           ${t.non_lus > 0 ? `<span class="bdg bdg-or">${t.non_lus} nouveau${t.non_lus > 1 ? "x" : ""}</span>` : ""}
         </div>
@@ -1885,7 +1885,7 @@ async function loadDemandes() {
         <div class="card-sb">Pour : ${esc(d.titre)}</div>
         ${(d.profession || d.revenu_usd || d.nb_occupants) ? `
         <div class="spec-row">
-          ${d.profession ? `<span class="spec-chip"><span class="ic">💼</span>${d.profession}</span>` : ""}
+          ${d.profession ? `<span class="spec-chip"><span class="ic">💼</span>${esc(d.profession)}</span>` : ""}
           ${d.revenu_usd ? `<span class="spec-chip"><span class="ic">💵</span>${d.revenu_usd} $/mois</span>` : ""}
           ${d.nb_occupants ? `<span class="spec-chip"><span class="ic">👪</span>${d.nb_occupants} occupant${d.nb_occupants > 1 ? "s" : ""}</span>` : ""}
         </div>` : ""}
@@ -1956,7 +1956,7 @@ function renderContrat(c) {
         <div class="center">
           <div style="font-size:14px;color:var(--G);font-weight:800;">✓</div>
           <div style="color:#fff;font-weight:800;font-family:var(--fd);margin-top:6px;">Bail signé électroniquement</div>
-          <div style="color:var(--TX3);font-size:11px;margin-top:6px;">Réf. ${c.reference_signature}</div>
+          <div style="color:var(--TX3);font-size:11px;margin-top:6px;">Réf. ${esc(c.reference_signature)}</div>
         </div>
       </div>
       <div class="card">
@@ -1964,13 +1964,13 @@ function renderContrat(c) {
         <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${esc(c.bailleur_nom)}</div></div>
         <div class="st"><div class="st-k">Locataire</div><div class="st-v">${esc(c.locataire_nom)}</div></div>
         <div class="st"><div class="st-k">Bien</div><div class="st-v">${esc(c.titre)}</div></div>
-        <div class="st"><div class="st-k">Adresse</div><div class="st-v">${c.adresse || c.commune}</div></div>
+        <div class="st"><div class="st-k">Adresse</div><div class="st-v">${esc(c.adresse || c.commune)}</div></div>
         <div class="st"><div class="st-k">Loyer mensuel</div><div class="st-v">${c.loyer_usd} USD</div></div>
         <div class="st"><div class="st-k">Durée</div><div class="st-v">${c.duree_mois} mois</div></div>
         <div class="st"><div class="st-k">Commission IBS</div><div class="st-v">${c.commission_usd} USD</div></div>
         <div class="st"><div class="st-k">Réception des loyers</div><div class="st-v">${c.reception_loyer || "—"}</div></div>
         <div class="st"><div class="st-k">Signé le</div><div class="st-v">${new Date(c.signed_at).toLocaleString("fr-FR")}</div></div>
-        <div class="st"><div class="st-k">Empreinte du document</div><div class="st-v" style="font-size:9.5px;word-break:break-all;">${c.contenu_hash}</div></div>
+        <div class="st"><div class="st-k">Empreinte du document</div><div class="st-v" style="font-size:9.5px;word-break:break-all;">${esc(c.contenu_hash)}</div></div>
       </div>
       <div style="font-size:10.5px;color:var(--TX3);line-height:1.6;">Ces informations font foi et restent consultables ici à tout moment depuis "Mes contrats".</div>
       <button class="btn btn-g" style="margin-top:12px;" onclick="telechargerPdf(${c.id})">📄 Télécharger le PDF du contrat</button>`;
@@ -2141,7 +2141,7 @@ async function doRappels(simulation) {
   try {
     const r = await api(`/rappels/executer${simulation ? "?simulation=true" : ""}`, { method: "POST" });
     const apercu = (r.apercu || []).map((m) =>
-      `<div class="st"><div class="st-k">👤 ${m.nom || "#" + m.destinataire_id}<br><span class="muted" style="font-weight:400;">${m.telephone || ""}</span></div><div class="st-v" style="font-weight:400;">${esc(m.message)}</div></div>`
+      `<div class="st"><div class="st-k">👤 ${esc(m.nom) || "#" + m.destinataire_id}<br><span class="muted" style="font-weight:400;">${esc(m.telephone || "")}</span></div><div class="st-v" style="font-weight:400;">${esc(m.message)}</div></div>`
     ).join("");
     box.innerHTML = `
       <div class="card" style="margin-top:6px;">
@@ -2223,7 +2223,7 @@ function sProfil() {
     <div class="st"><div class="st-k">Agence</div><div class="st-v">${u.nom_agence || "—"}</div></div>
     <div class="st"><div class="st-k">Agrément / RCCM</div><div class="st-v">${u.agrement_ou_rccm || "—"}</div></div>` : ""}
     <div class="st"><div class="st-k">Téléphone</div><div class="st-v">${esc(u.telephone)}</div></div>
-    <div class="st"><div class="st-k">Commune</div><div class="st-v">${u.commune || "—"}</div></div>
+    <div class="st"><div class="st-k">Commune</div><div class="st-v">${esc(u.commune || "—")}</div></div>
     <div class="st"><div class="st-k">Identité</div><div class="st-v">${u.cni_statut === "verifie" ? "✓ Vérifiée" : "⏳ En attente"}</div></div>
   </div>
   ${u.role === "locataire" ? `
@@ -2282,7 +2282,7 @@ function apercuPiece(id) {
     <div class="pick-preview">
       <img src="${url}" alt="Aperçu de la pièce">
       <div>
-        <div class="nm">${f.name}</div>
+        <div class="nm">${esc(f.name)}</div>
         <div class="ch">✓ Photo ajoutée — appuyez pour la remplacer</div>
       </div>
     </div>`;
@@ -2322,7 +2322,7 @@ function toggleEq(el) { el.classList.toggle("on"); }
 function eqGridHtml(checked = [], containerId = "") {
   return `<div class="fg"${containerId ? ` id="${containerId}"` : ""}><label class="fl">Équipements</label>
     <div class="eq-grid">${EQUIPEMENTS_LIST.map(e => `
-      <div class="eq-item${checked.includes(e.code) ? " on" : ""}" data-code="${e.code}" onclick="toggleEq(this)">
+      <div class="eq-item${checked.includes(e.code) ? " on" : ""}" data-code="${esc(e.code)}" onclick="toggleEq(this)">
         <span class="eq-ic">${e.ic}</span>${e.label}
       </div>`).join("")}</div></div>`;
 }
