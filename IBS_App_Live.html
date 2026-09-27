@@ -129,7 +129,46 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .gallery img{height:190px;width:auto;border-radius:12px;object-fit:cover;flex:none;cursor:pointer;}
 .gallery-placeholder{height:130px;border-radius:12px;background:var(--IVD);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--TX3);font-size:32px;margin-bottom:14px;}
 .gallery-placeholder span{font-size:11.5px;}
-.cover-thumb{width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:10px;}
+/* Prise de pièce d'identité — l'input file natif affichait « Choose File /
+   No file chosen », en anglais et au style du navigateur, sur l'écran qui
+   décide si quelqu'un devient utilisateur. Il est masqué au profit d'une
+   zone dessinée, et la photo choisie s'affiche pour qu'on voie si elle est
+   lisible avant de l'envoyer. */
+.pick{position:relative;border:1.5px dashed var(--LN);background:#fff;border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;}
+.pick:active{border-color:var(--G);}
+.pick input[type=file]{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;}
+.pick .ic{font-size:22px;display:block;margin-bottom:4px;}
+.pick .tt{font-size:12.5px;font-weight:700;color:var(--N);}
+.pick .sb{font-size:10.5px;color:var(--TX3);margin-top:2px;}
+.pick.done{border-style:solid;border-color:var(--GR);background:var(--GRD);}
+.pick-preview{display:flex;align-items:center;gap:10px;text-align:left;}
+.pick-preview img{width:64px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;}
+.pick-preview .nm{font-size:12px;font-weight:700;color:var(--N);word-break:break-all;}
+.pick-preview .ch{font-size:10.5px;color:var(--GR);font-weight:700;margin-top:2px;}
+/* Les mois à venir n'ont rien à dire : en carte pleine ils occupaient la
+   moitié du défilement, et leur badge tombait sur la couleur d'alerte. */
+.bdg-nt{background:var(--IVD);color:var(--TX2);}
+.mois-avenir{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;font-size:12.5px;color:var(--TX2);border-bottom:1px solid var(--LN);}
+.mois-avenir:last-child{border-bottom:none;}
+.mois-avenir .m{font-weight:700;color:var(--N);}
+.repli{background:#fff;border:1px solid var(--LN);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+.repli-tt{padding:12px 14px;font-size:12.5px;font-weight:700;color:var(--TX2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.bilan{display:flex;gap:8px;margin-bottom:14px;}
+.bilan-c{flex:1;background:var(--N);border-radius:12px;padding:11px 10px;text-align:center;}
+.bilan-c .l{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#B9C0D6;font-weight:700;}
+.bilan-c .v{font-size:15px;font-weight:800;color:#fff;margin-top:3px;}
+.bilan-c.ok .v{color:#8FD3AE;}
+.bilan-c.warn .v{color:#F0A882;}
+.cover-wrap{position:relative;margin-bottom:10px;}
+.cover-thumb{width:100%;height:150px;object-fit:cover;border-radius:10px;display:block;}
+/* Sans photo, la carte commençait au titre : la liste devenait irrégulière et
+   l'offre paraissait moins sérieuse que ses voisines. */
+.cover-none{width:100%;height:150px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  background:linear-gradient(135deg,#132552,#1B2C5C);color:rgba(255,255,255,.5);}
+.cover-none .ic{font-size:26px;opacity:.65;}
+.cover-none .tx{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+.cover-count{position:absolute;right:8px;bottom:8px;background:rgba(13,27,62,.82);color:#fff;font-size:10.5px;font-weight:700;
+  padding:3px 8px;border-radius:20px;backdrop-filter:blur(2px);}
 .photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--LN);}
 .photo-thumb-wrap{position:relative;}
@@ -487,10 +526,10 @@ function sRegister() {
   <div class="fg"><label class="fl">Numéro d'agrément ou RCCM</label><input class="fi" id="rAgrement" placeholder="ex : CD/KNG/RCCM/24-B-1234">
     <div class="fhelp">Obligatoire pour les intermédiaires — contrôlé par l'équipe IBS comme la CNI.</div>
   </div>` : ""}
-  <div class="fg"><label class="fl">CNI — recto</label><input class="fi" id="rCniR" type="file" accept="image/*">
-    <div class="fhelp">Photo nette et lisible. Le fichier est transmis de façon sécurisée à l'équipe IBS pour vérification.</div>
+  <div class="fg"><label class="fl">Carte d'identité — recto</label>${champPiece("rCniR")}</div>
+  <div class="fg"><label class="fl">Carte d'identité — verso</label>${champPiece("rCniV")}
+    <div class="fhelp">Photo nette et lisible, les quatre coins visibles. Transmise de façon sécurisée à l'équipe IBS pour vérification.</div>
   </div>
-  <div class="fg"><label class="fl">CNI — verso</label><input class="fi" id="rCniV" type="file" accept="image/*"></div>
   <button class="btn btn-g" id="btnRegister" onclick="doRegister('${role}')">Créer mon compte</button>
   <div class="center" style="padding-top:14px;"><span class="muted">Déjà inscrit ? </span><span class="lnk" onclick="go('login')">Se connecter</span></div>`;
 }
@@ -812,11 +851,11 @@ async function loadOffres() {
     r.offres.forEach(o => { state.cache.lastOffresById[o.offre_id] = o; });
     box.innerHTML = r.offres.map(o => `
       <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
-        ${(o.photos || []).length ? `<img class="cover-thumb" src="${o.photos[0]}">` : ""}
+        ${coverOffre(o)}
         <div class="row">
           <div>
-            <div class="card-tt">${o.titre}</div>
-            <div class="card-sb">📍 ${o.commune}</div>
+            <div class="card-tt">${esc(o.titre)}</div>
+            <div class="card-sb">📍 ${esc(o.commune)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             ${o.statut_verification!=='verifie' ? '<span class="bdg bdg-or">⏳ Vérification</span>' : '<span class="bdg bdg-gr">✓ Vérifié</span>'}
@@ -891,7 +930,7 @@ function sComparateur() {
   return `
     <div class="cmp-wrap">
       <table class="cmp-table">
-        <thead><tr><th>Critère</th>${offers.map(o => `<th onclick="go('offre',{id:${o.offre_id}})" style="cursor:pointer;">${o.titre}</th>`).join("")}</tr></thead>
+        <thead><tr><th>Critère</th>${offers.map(o => `<th onclick="go('offre',{id:${o.offre_id}})" style="cursor:pointer;">${esc(o.titre)}</th>`).join("")}</tr></thead>
         <tbody>${rows.map(r => `<tr><td>${r.lbl}</td>${offers.map(o => `<td>${r.val(o)}</td>`).join("")}</tr>`).join("")}</tbody>
       </table>
     </div>
@@ -953,10 +992,11 @@ async function loadFavoris() {
     if (!r.favoris.length) { box.innerHTML = `<div class="center muted">Aucun favori pour l'instant.<br>Appuyez sur 🤍 sur une offre pour la sauvegarder.<br><span class="lnk" onclick="go('offres')">← Aller à Chercher</span></div>`; return; }
     box.innerHTML = r.favoris.map(o => `
       <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
+        ${coverOffre(o)}
         <div class="row">
           <div>
-            <div class="card-tt">${o.titre}</div>
-            <div class="card-sb">📍 ${o.commune}</div>
+            <div class="card-tt">${esc(o.titre)}</div>
+            <div class="card-sb">📍 ${esc(o.commune)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             ${o.statut_verification!=='verifie' ? '<span class="bdg bdg-or">⏳ Vérification</span>' : '<span class="bdg bdg-gr">✓ Vérifié</span>'}
@@ -1015,9 +1055,9 @@ async function loadAdminSignalements() {
     const stClass = { en_attente: "bdg-or", traite: "bdg-gr", rejete: "bdg-rd" };
     box.innerHTML = r.signalements.map(s => `
       <div class="card">
-        <div class="row"><span class="card-tt">${s.titre}</span><span class="bdg ${stClass[s.statut]}">${stLabel[s.statut]}</span></div>
-        <div class="card-sb">📍 ${s.commune} · signalé par ${s.signale_par}</div>
-        <div class="card-sb" style="margin-top:6px;font-weight:700;color:var(--N);">${s.motif}</div>
+        <div class="row"><span class="card-tt">${esc(s.titre)}</span><span class="bdg ${stClass[s.statut]}">${stLabel[s.statut]}</span></div>
+        <div class="card-sb">📍 ${esc(s.commune)} · signalé par ${s.signale_par}</div>
+        <div class="card-sb" style="margin-top:6px;font-weight:700;color:var(--N);">${esc(s.motif)}</div>
         ${s.details ? `<div class="card-sb" style="font-style:italic;">"${s.details}"</div>` : ""}
         ${s.statut === "en_attente" ? `
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
@@ -1058,8 +1098,8 @@ async function loadMesDocuments() {
       <div class="h1" style="font-size:16px;margin-top:22px;">Baux signés</div>
       ${baux.length ? baux.map(c => `
         <div class="card">
-          <div class="card-tt">${c.titre}</div>
-          <div class="card-sb">${c.commune} · Réf. ${c.reference_signature || "—"}</div>
+          <div class="card-tt">${esc(c.titre)}</div>
+          <div class="card-sb">${esc(c.commune)} · Réf. ${c.reference_signature || "—"}</div>
           <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="telechargerPdf(${c.id})">📄 Télécharger le PDF</button>
         </div>`).join("") : `<div class="center muted">Aucun bail signé pour l'instant.</div>`}
     `;
@@ -1084,7 +1124,7 @@ async function loadQuartier(commune) {
         <div class="price-cell accent"><div class="plbl">Transport</div><div class="pval">${r.note_transport_moyenne} ★</div></div>
       </div>
       <div class="sub" style="margin-top:8px;">${r.avis_count} avis de locataires ayant vécu dans ce quartier via IBS.</div>
-      ${r.avis.filter(a => a.commentaire).map(a => `<div class="card"><div class="card-sb" style="font-style:italic;">"${a.commentaire}"</div></div>`).join("")}
+      ${r.avis.filter(a => a.commentaire).map(a => `<div class="card"><div class="card-sb" style="font-style:italic;">"${esc(a.commentaire)}"</div></div>`).join("")}
       ` : `<div class="center muted">Aucun avis pour ce quartier pour l'instant.</div>`}
       ${state.user && state.user.role === "locataire" ? `<button class="btn btn-o" style="margin-top:16px;" onclick="go('quartier_avis_form',{commune:${JSON.stringify(commune)}})">Noter ce quartier</button>` : ""}
     `;
@@ -1169,13 +1209,13 @@ async function loadOffreDetail(id) {
         : `<div class="gallery-placeholder">🏠<span>Aucune photo pour cette offre</span></div>`}
       ${o.confiance ? `<div class="trust-badge trust-${o.confiance.code}">${o.confiance.icon} ${o.confiance.label}</div>` : ""}
       <div class="row" style="align-items:flex-start;">
-        <div class="h1" style="margin-bottom:0;">${o.titre}</div>
+        <div class="h1" style="margin-bottom:0;">${esc(o.titre)}</div>
         <div style="display:flex;gap:6px;">
           ${canApply ? `<span class="fav-heart" id="favHeart" onclick="toggleFavori(${o.offre_id}, this)">${state.cache.favIds && state.cache.favIds.has(o.offre_id) ? "❤️" : "🤍"}</span>` : ""}
           <span class="fav-heart" onclick='doPartagerOffre(${JSON.stringify(o.titre)},${JSON.stringify(o.commune)},${o.loyer_usd})'>📤</span>
         </div>
       </div>
-      <div class="sub">📍 ${o.commune}${o.adresse ? " · " + o.adresse : ""}</div>
+      <div class="sub">📍 ${esc(o.commune)}${o.adresse ? " · " + o.adresse : ""}</div>
       <div class="spec-row">
         <span class="spec-chip"><span class="ic">${typeIcon(o.type)}</span>${capitalize(o.type)}</span>
         <span class="spec-chip"><span class="ic">🛏</span>${o.chambres} chambre${o.chambres > 1 ? "s" : ""}</span>
@@ -1189,9 +1229,9 @@ async function loadOffreDetail(id) {
         <div class="price-cell"><div class="plbl">Charges</div><div class="pval" style="font-size:11px;">${o.charges_incluses ? "Incluses" : "Non incl."}</div></div>
       </div>
       <div class="offer-foot" style="margin-bottom:4px;"><span class="avail"><span class="d"></span>${DISPO_LABEL[o.disponibilite] || "Disponible immédiat"}</span></div>
-      <div class="lnk" onclick="go('quartier',{commune:${JSON.stringify(o.commune)}})">🏘️ Voir les avis sur le quartier ${o.commune}</div>
+      <div class="lnk" onclick="go('quartier',{commune:${JSON.stringify(o.commune)}})">🏘️ Voir les avis sur le quartier ${esc(o.commune)}</div>
       <div class="card" style="margin-top:14px;">
-        <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${o.bailleur_nom}</div></div>
+        <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${esc(o.bailleur_nom)}</div></div>
         <div class="st"><div class="st-k">Note locataires</div><div class="st-v">${o.note_moyenne ? "⭐ " + o.note_moyenne.toFixed(1) + " (" + o.avis_count + " avis)" : "Pas encore d'avis"}</div></div>
         <div class="st"><div class="st-k">Abonnés</div><div class="st-v">${o.abonnes_count || 0}${o.tier && o.tier.cap ? " / " + o.tier.cap : ""}</div></div>
         <div class="st"><div class="st-k">Baux signés</div><div class="st-v">${o.baux_signes || 0}</div></div>
@@ -1202,7 +1242,7 @@ async function loadOffreDetail(id) {
           <button class="btn btn-n" id="abBtn" style="flex:1;" onclick="toggleAbonnement(${o.bailleur_id})">⭐ Suivre</button>
           <button class="btn btn-o" style="flex:1;" onclick="go('thread',{offre_id:${o.offre_id},locataire_id:${state.user.id}})">💬 Message</button>
         </div>` : ""}
-      ${o.description ? `<div class="card"><div class="card-sb">${o.description}</div></div>` : ""}
+      ${o.description ? `<div class="card"><div class="card-sb">${esc(o.description)}</div></div>` : ""}
       ${canApply
         ? `<div class="fg"><label class="fl">Message au bailleur (optionnel)</label><textarea class="fi" id="postMsg" rows="3" placeholder="Précisez votre situation, date souhaitée…"></textarea></div>
            <button class="btn btn-g" id="btnPostuler" onclick="doPostuler(${o.offre_id})">Postuler sur cette offre</button>
@@ -1303,8 +1343,8 @@ async function loadMesOffres() {
       <div class="card offer-card" style="cursor:default;">
         <div class="row">
           <div>
-            <div class="card-tt">${o.titre}</div>
-            <div class="card-sb">📍 ${o.commune}</div>
+            <div class="card-tt">${esc(o.titre)}</div>
+            <div class="card-sb">📍 ${esc(o.commune)}</div>
           </div>
           <span class="bdg ${o.statut==='louee'?'bdg-gr':o.statut==='suspendue'?'bdg-rd':'bdg-or'}">${o.statut}</span>
         </div>
@@ -1384,7 +1424,7 @@ async function loadAbonnements() {
       <div class="card">
         <div class="row">
           <div>
-            <div class="card-tt">${a.nom}</div>
+            <div class="card-tt">${esc(a.nom)}</div>
             <div class="card-sb">${a.role === "intermediaire" ? "Agence" : "Bailleur"} · ${a.offres_actives} offre${a.offres_actives > 1 ? "s" : ""} active${a.offres_actives > 1 ? "s" : ""}</div>
           </div>
           <button class="btn btn-o btn-sm" onclick="toggleAbonnement(${a.bailleur_id})">Se désabonner</button>
@@ -1395,8 +1435,8 @@ async function loadAbonnements() {
       <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
         <div class="row">
           <div>
-            <div class="card-tt">${o.titre}</div>
-            <div class="card-sb">📍 ${o.commune} · ${o.bailleur_nom}</div>
+            <div class="card-tt">${esc(o.titre)}</div>
+            <div class="card-sb">📍 ${esc(o.commune)} · ${esc(o.bailleur_nom)}</div>
           </div>
           ${o.statut_verification !== "verifie" ? '<span class="bdg bdg-or">⏳ Vérification</span>' : '<span class="bdg bdg-gr">✓ Vérifié</span>'}
         </div>
@@ -1437,7 +1477,7 @@ async function loadClassement() {
         <div class="card">
           <div class="row">
             <div>
-              <div class="card-tt">${i < 3 ? ["🥇","🥈","🥉"][i] : "#" + (i + 1)} ${b.nom}</div>
+              <div class="card-tt">${i < 3 ? ["🥇","🥈","🥉"][i] : "#" + (i + 1)} ${esc(b.nom)}</div>
               <div class="card-sb">${b.role === "intermediaire" ? "Agence" : "Bailleur"} · ${TIER_ICON[b.tier.code] || "🏅"} Palier ${b.tier.nom}</div>
             </div>
             <div style="text-align:right;">
@@ -1462,8 +1502,8 @@ async function loadModifierOffre(id) {
     const o = r.offre;
     box.innerHTML = `
       <div class="h1">Modifier l'offre</div>
-      <div class="fg"><label class="fl">Titre</label><input class="fi" id="mTitre" value="${o.titre}"></div>
-      <div class="fg"><label class="fl">Commune</label><input class="fi" id="mCommune" value="${o.commune}"></div>
+      <div class="fg"><label class="fl">Titre</label><input class="fi" id="mTitre" value="${esc(o.titre)}"></div>
+      <div class="fg"><label class="fl">Commune</label><input class="fi" id="mCommune" value="${esc(o.commune)}"></div>
       <div class="fg"><label class="fl">Adresse</label><input class="fi" id="mAdresse" value="${o.adresse || ""}"></div>
       <div style="display:flex;gap:10px;">
         <div class="fg" style="flex:1;"><label class="fl">Chambres</label><input class="fi" id="mChambres" type="number" value="${o.chambres}"></div>
@@ -1533,8 +1573,8 @@ async function loadMesCandidatures() {
     if (!r.demandes.length) { box.innerHTML = `<div class="center muted">Aucune candidature pour l'instant.<br><span class="lnk" onclick="go('offres')">Chercher un logement →</span></div>`; return; }
     box.innerHTML = r.demandes.map(d => `
       <div class="card" ${d.contrat_id ? `onclick="go('contrat',{id:${d.contrat_id}})" style="cursor:pointer;"` : ""}>
-        <div class="card-tt">${d.titre}</div>
-        <div class="card-sb">${d.commune} · ${d.loyer_usd} USD/mois</div>
+        <div class="card-tt">${esc(d.titre)}</div>
+        <div class="card-sb">${esc(d.commune)} · ${d.loyer_usd} USD/mois</div>
         ${candidatureStepperHtml(d)}
       </div>`).join("");
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
@@ -1574,8 +1614,8 @@ async function loadMesContrats() {
     const badgeClass = { signe: "bdg-gr", annule: "bdg-rd" };
     box.innerHTML = r.contrats.map(c => `
       <div class="card" onclick="go('contrat',{id:${c.id}})" style="cursor:pointer;">
-        <div class="row"><span class="card-tt">${c.titre}</span><span class="bdg ${badgeClass[c.statut] || 'bdg-or'}">${labels[c.statut] || c.statut}</span></div>
-        <div class="card-sb">${c.commune} · ${c.loyer_usd} USD/mois · ${c.duree_mois} mois</div>
+        <div class="row"><span class="card-tt">${esc(c.titre)}</span><span class="bdg ${badgeClass[c.statut] || 'bdg-or'}">${labels[c.statut] || c.statut}</span></div>
+        <div class="card-sb">${esc(c.commune)} · ${c.loyer_usd} USD/mois · ${c.duree_mois} mois</div>
         ${c.reference_signature ? `<div class="card-sb" style="margin-top:4px;">Réf. ${c.reference_signature}</div>` : ""}
         ${c.jours_restants !== null && c.jours_restants !== undefined && c.jours_restants <= 30 && c.jours_restants >= 0 ? `
           <div class="card-sb" style="margin-top:8px;color:#9C4A2E;font-weight:700;">⏰ Ce bail se termine dans ${c.jours_restants} jour${c.jours_restants > 1 ? "s" : ""} (${c.date_fin})</div>` : ""}
@@ -1604,7 +1644,7 @@ async function loadCarnetLoyer(contratId) {
     };
     const STATUT_CLASS = {
       paye: "bdg-gr", en_attente_confirmation: "bdg-or", conteste: "bdg-rd",
-      en_retard: "bdg-rd", du_ce_mois: "bdg-or", a_venir: "",
+      en_retard: "bdg-rd", du_ce_mois: "bdg-or", a_venir: "bdg-nt",
     };
     const moisFr = (cle) => {
       const [an, m] = cle.split("-");
@@ -1633,11 +1673,24 @@ async function loadCarnetLoyer(contratId) {
       return btns.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${btns.join("")}</div>` : "";
     }
 
+    // Les bandeaux annonçaient un nombre de mois sans jamais le montant — or
+    // c'est la somme qui parle à un bailleur comme à un locataire.
+    const payes = r.echeancier.filter(e => e.statut === "paye");
+    const encaisse = payes.reduce((t, e) => t + Number(e.montant_usd), 0);
+    const dus = r.mois_en_retard * Number(r.loyer_usd);
+    const aVenir = r.echeancier.filter(e => e.statut === "a_venir");
+    const courants = r.echeancier.filter(e => e.statut !== "a_venir");
+
     box.innerHTML = `
-      ${r.mois_en_retard > 0 ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;margin-bottom:14px;"><div class="card-tt" style="color:#9C4A2E;">⚠️ ${r.mois_en_retard} mois en retard</div><div class="card-sb">À régulariser au plus vite avec l'autre partie.</div></div>` : ""}
+      <div class="bilan">
+        <div class="bilan-c ok"><div class="l">Réglé</div><div class="v">${encaisse} $</div></div>
+        <div class="bilan-c ${dus > 0 ? "warn" : ""}"><div class="l">En retard</div><div class="v">${dus} $</div></div>
+        <div class="bilan-c"><div class="l">Mois payés</div><div class="v">${payes.length}/${r.duree_mois}</div></div>
+      </div>
+      ${r.mois_en_retard > 0 ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;margin-bottom:14px;"><div class="card-tt" style="color:#9C4A2E;">⚠️ ${r.mois_en_retard} mois en retard — ${dus} USD</div><div class="card-sb">À régulariser au plus vite avec l'autre partie.</div></div>` : ""}
       ${r.mois_a_confirmer > 0 && bailleur ? `<div class="card" style="border-color:#D9C08A;background:#FCF7EA;margin-bottom:14px;"><div class="card-tt">⏳ ${r.mois_a_confirmer} mois à confirmer</div><div class="card-sb">Votre locataire déclare avoir payé. Confirmez la réception pour solder ces mois.</div></div>` : ""}
       ${r.mois_contestes > 0 ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;margin-bottom:14px;"><div class="card-tt" style="color:#9C4A2E;">⚠️ ${r.mois_contestes} mois contesté(s)</div><div class="card-sb">L'équipe IBS en est informée. Rapprochez-vous de l'autre partie.</div></div>` : ""}
-      ${r.echeancier.map(e => `
+      ${courants.map(e => `
         <div class="card">
           <div class="row">
             <span class="card-tt">${moisFr(e.mois)}</span>
@@ -1645,7 +1698,7 @@ async function loadCarnetLoyer(contratId) {
           </div>
           <div class="card-sb">${e.montant_usd} USD${e.moyen ? " · " + e.moyen : ""}</div>
           ${e.statut === "en_attente_confirmation" && !bailleur && e.declare_par_moi ? `<div class="card-sb" style="margin-top:6px;">En attente de confirmation par votre bailleur.</div>` : ""}
-          ${e.motif_contestation ? `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">Motif : ${e.motif_contestation}</div>` : ""}
+          ${e.motif_contestation ? `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">Motif : ${esc(e.motif_contestation)}</div>` : ""}
           ${actions(e)}
           <div id="contest-${e.mois}" style="display:none;margin-top:10px;">
             <div class="fg"><label class="fl">Motif de la contestation</label><textarea class="fi" id="motif-${e.mois}" rows="2" placeholder="Expliquez pourquoi vous contestez ce paiement…"></textarea></div>
@@ -1655,8 +1708,27 @@ async function loadCarnetLoyer(contratId) {
             </div>
           </div>
         </div>`).join("")}
+      ${aVenir.length ? `
+        <div class="repli">
+          <div class="repli-tt" onclick="basculerAvenir()">
+            <span>${aVenir.length} mois à venir · ${aVenir.length * Number(r.loyer_usd)} $</span>
+            <span id="avenirChevron">▾</span>
+          </div>
+          <div id="avenirListe" style="display:none;">
+            ${aVenir.map(e => `<div class="mois-avenir"><span class="m">${moisFr(e.mois)}</span><span>${e.montant_usd} $</span></div>`).join("")}
+          </div>
+        </div>` : ""}
     `;
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+function basculerAvenir() {
+  const l = document.getElementById("avenirListe");
+  const c = document.getElementById("avenirChevron");
+  if (!l) return;
+  const ouvert = l.style.display !== "none";
+  l.style.display = ouvert ? "none" : "block";
+  if (c) c.textContent = ouvert ? "▾" : "▴";
 }
 
 function ouvrirContestation(mois) {
@@ -1772,12 +1844,12 @@ async function loadThread(offreId, locataireId) {
   try {
     const r = await api(`/messages/${offreId}/${locataireId}`);
     box.innerHTML = `
-      <div class="sub" style="margin-top:-6px;margin-bottom:14px;">Au sujet de : <b>${r.titre_offre}</b></div>
+      <div class="sub" style="margin-top:-6px;margin-bottom:14px;">Au sujet de : <b>${esc(r.titre_offre)}</b></div>
       <div id="threadMsgs" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
         ${r.messages.length ? r.messages.map(m => `
           <div style="align-self:${m.expediteur_id === state.user.id ? "flex-end" : "flex-start"};max-width:80%;">
             <div style="background:${m.expediteur_id === state.user.id ? "var(--N)" : "var(--IVD)"};color:${m.expediteur_id === state.user.id ? "#fff" : "var(--TX)"};padding:10px 13px;border-radius:14px;font-size:13.5px;">
-              ${m.contenu}
+              ${esc(m.contenu)}
             </div>
             <div style="font-size:10px;color:var(--TX3);margin-top:3px;${m.expediteur_id === state.user.id ? "text-align:right;" : ""}">${m.expediteur_nom.split(" ")[0]}</div>
           </div>`).join("") : `<div class="center muted">Aucun message pour l'instant — écrivez le premier.</div>`}
@@ -1809,15 +1881,15 @@ async function loadDemandes() {
     if (!r.demandes.length) { box.innerHTML = `<div class="center muted">Aucune candidature reçue pour l'instant.</div>`; return; }
     box.innerHTML = r.demandes.map(d => `
       <div class="card">
-        <div class="row"><span class="card-tt">${d.locataire_nom}</span><span class="bdg ${d.statut==='selectionnee'?'bdg-gr':d.statut==='refusee'?'bdg-rd':'bdg-or'}">${d.statut}</span></div>
-        <div class="card-sb">Pour : ${d.titre}</div>
+        <div class="row"><span class="card-tt">${esc(d.locataire_nom)}</span><span class="bdg ${d.statut==='selectionnee'?'bdg-gr':d.statut==='refusee'?'bdg-rd':'bdg-or'}">${d.statut}</span></div>
+        <div class="card-sb">Pour : ${esc(d.titre)}</div>
         ${(d.profession || d.revenu_usd || d.nb_occupants) ? `
         <div class="spec-row">
           ${d.profession ? `<span class="spec-chip"><span class="ic">💼</span>${d.profession}</span>` : ""}
           ${d.revenu_usd ? `<span class="spec-chip"><span class="ic">💵</span>${d.revenu_usd} $/mois</span>` : ""}
           ${d.nb_occupants ? `<span class="spec-chip"><span class="ic">👪</span>${d.nb_occupants} occupant${d.nb_occupants > 1 ? "s" : ""}</span>` : ""}
         </div>` : ""}
-        ${d.message ? `<div class="card-sb" style="margin-top:4px;font-style:italic;">"${d.message}"</div>` : ""}
+        ${d.message ? `<div class="card-sb" style="margin-top:4px;font-style:italic;">"${esc(d.message)}"</div>` : ""}
         ${d.statut === "en_attente" ? `<button class="btn btn-g btn-sm" style="margin-top:10px;" onclick="doSelectionner(${d.demande_id})">Sélectionner ce candidat</button>` : ""}
         ${d.statut === "selectionnee" ? `<button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="go('mine')">Voir dans Mes offres</button>` : ""}
         <button class="btn btn-o btn-sm" style="margin-top:8px;" onclick="go('thread',{offre_id:${d.offre_id},locataire_id:${d.locataire_id}})">💬 Message</button>
@@ -1889,9 +1961,9 @@ function renderContrat(c) {
       </div>
       <div class="card">
         <div class="card-tt">Contrat de bail</div>
-        <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${c.bailleur_nom}</div></div>
-        <div class="st"><div class="st-k">Locataire</div><div class="st-v">${c.locataire_nom}</div></div>
-        <div class="st"><div class="st-k">Bien</div><div class="st-v">${c.titre}</div></div>
+        <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${esc(c.bailleur_nom)}</div></div>
+        <div class="st"><div class="st-k">Locataire</div><div class="st-v">${esc(c.locataire_nom)}</div></div>
+        <div class="st"><div class="st-k">Bien</div><div class="st-v">${esc(c.titre)}</div></div>
         <div class="st"><div class="st-k">Adresse</div><div class="st-v">${c.adresse || c.commune}</div></div>
         <div class="st"><div class="st-k">Loyer mensuel</div><div class="st-v">${c.loyer_usd} USD</div></div>
         <div class="st"><div class="st-k">Durée</div><div class="st-v">${c.duree_mois} mois</div></div>
@@ -1905,8 +1977,8 @@ function renderContrat(c) {
   }
 
   return `
-  <div class="h1">${c.titre}</div>
-  <div class="sub">${c.commune} · ${c.loyer_usd} USD/mois · Commission IBS : ${c.commission_usd} USD</div>
+  <div class="h1">${esc(c.titre)}</div>
+  <div class="sub">${esc(c.commune)} · ${c.loyer_usd} USD/mois · Commission IBS : ${c.commission_usd} USD</div>
   ${body}`;
 }
 function toggleChk(id) { document.getElementById(id).classList.toggle("on"); }
@@ -1959,8 +2031,8 @@ async function loadAdminCni() {
     if (!r.users.length) { box.innerHTML = `<div class="center muted">Aucune CNI en attente. 🎉</div>`; return; }
     box.innerHTML = r.users.map(u => `
       <div class="card">
-        <div class="row"><span class="card-tt">${u.nom}</span><span class="bdg bdg-or">${roleLabel(u.role)}</span></div>
-        <div class="card-sb">${u.telephone}</div>
+        <div class="row"><span class="card-tt">${esc(u.nom)}</span><span class="bdg bdg-or">${roleLabel(u.role)}</span></div>
+        <div class="card-sb">${esc(u.telephone)}</div>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button class="btn btn-g btn-sm" onclick="reviewCni(${u.id},'verifie')">✓ Valider</button>
           <button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="reviewCni(${u.id},'rejete')">✕ Rejeter</button>
@@ -1985,8 +2057,8 @@ async function loadAdminBiens() {
     if (!r.proprietes.length) { box.innerHTML = `<div class="center muted">Aucun bien en attente. 🎉</div>`; return; }
     box.innerHTML = r.proprietes.map(p => `
       <div class="card">
-        <div class="row"><span class="card-tt">${p.titre}</span><span class="bdg bdg-or">⏳ En attente</span></div>
-        <div class="card-sb">${p.commune} · Bailleur : ${p.bailleur_nom}</div>
+        <div class="row"><span class="card-tt">${esc(p.titre)}</span><span class="bdg bdg-or">⏳ En attente</span></div>
+        <div class="card-sb">${esc(p.commune)} · Bailleur : ${esc(p.bailleur_nom)}</div>
         <div class="card-sb" style="margin-top:4px;">📎 ${p.titre_propriete_url || "Aucun justificatif fourni"}</div>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button class="btn btn-g btn-sm" onclick="reviewBien(${p.id},'verifie')">✓ Valider</button>
@@ -2031,13 +2103,13 @@ async function loadAdminLitiges() {
       ${r.litiges.map(l => `
         <div class="card">
           <div class="row">
-            <span class="card-tt">${l.titre} — ${l.commune}</span>
+            <span class="card-tt">${esc(l.titre)} — ${esc(l.commune)}</span>
             <span class="bdg bdg-rd">${moisFr(l.mois)}</span>
           </div>
           <div class="card-sb">${l.montant_usd} USD · contesté le ${new Date(l.conteste_at).toLocaleDateString("fr-FR")}</div>
           <div class="st"><div class="st-k">Déclaré par</div><div class="st-v">${l.declare_par_nom || "—"}<br><span class="muted" style="font-weight:400;">${l.declare_par_tel || ""}</span></div></div>
           <div class="st"><div class="st-k">Contesté par</div><div class="st-v">${l.conteste_par_nom || "—"}<br><span class="muted" style="font-weight:400;">${l.conteste_par_tel || ""}</span></div></div>
-          <div class="st"><div class="st-k">Motif</div><div class="st-v" style="font-weight:400;">${l.motif_contestation}</div></div>
+          <div class="st"><div class="st-k">Motif</div><div class="st-v" style="font-weight:400;">${esc(l.motif_contestation)}</div></div>
         </div>`).join("")}`;
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
@@ -2069,7 +2141,7 @@ async function doRappels(simulation) {
   try {
     const r = await api(`/rappels/executer${simulation ? "?simulation=true" : ""}`, { method: "POST" });
     const apercu = (r.apercu || []).map((m) =>
-      `<div class="st"><div class="st-k">👤 ${m.nom || "#" + m.destinataire_id}<br><span class="muted" style="font-weight:400;">${m.telephone || ""}</span></div><div class="st-v" style="font-weight:400;">${m.message}</div></div>`
+      `<div class="st"><div class="st-k">👤 ${m.nom || "#" + m.destinataire_id}<br><span class="muted" style="font-weight:400;">${m.telephone || ""}</span></div><div class="st-v" style="font-weight:400;">${esc(m.message)}</div></div>`
     ).join("");
     box.innerHTML = `
       <div class="card" style="margin-top:6px;">
@@ -2127,7 +2199,7 @@ async function loadNotifications() {
     if (!r.notifications.length) { box.innerHTML = `<div class="center muted">Aucune notification pour l'instant.</div>`; return; }
     box.innerHTML = r.notifications.map(n => `
       <div class="card" style="${n.lu ? '' : 'border-color:var(--G);'}">
-        <div class="card-sb" style="color:var(--TX);">${n.message}</div>
+        <div class="card-sb" style="color:var(--TX);">${esc(n.message)}</div>
         <div class="card-sb" style="margin-top:4px;font-size:10px;">${new Date(n.created_at).toLocaleString("fr-FR")}</div>
       </div>`).join("");
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
@@ -2145,12 +2217,12 @@ function sProfil() {
   const u = state.user;
   return `
   <div class="card">
-    <div class="card-tt">${u.nom}</div>
+    <div class="card-tt">${esc(u.nom)}</div>
     <div class="st"><div class="st-k">Rôle</div><div class="st-v">${roleLabel(u.role)}</div></div>
     ${u.role === "intermediaire" ? `
     <div class="st"><div class="st-k">Agence</div><div class="st-v">${u.nom_agence || "—"}</div></div>
     <div class="st"><div class="st-k">Agrément / RCCM</div><div class="st-v">${u.agrement_ou_rccm || "—"}</div></div>` : ""}
-    <div class="st"><div class="st-k">Téléphone</div><div class="st-v">${u.telephone}</div></div>
+    <div class="st"><div class="st-k">Téléphone</div><div class="st-v">${esc(u.telephone)}</div></div>
     <div class="st"><div class="st-k">Commune</div><div class="st-v">${u.commune || "—"}</div></div>
     <div class="st"><div class="st-k">Identité</div><div class="st-v">${u.cni_statut === "verifie" ? "✓ Vérifiée" : "⏳ En attente"}</div></div>
   </div>
@@ -2179,6 +2251,55 @@ async function doUpdateProfil() {
 }
 
 /* ── helpers ── */
+/** Zone de prise de photo d'une pièce d'identité. */
+function champPiece(id) {
+  return `
+    <div class="pick" id="pick-${id}">
+      <input type="file" id="${id}" accept="image/*" capture="environment" onchange="apercuPiece('${id}')">
+      <div id="pickbody-${id}">
+        <span class="ic">📷</span>
+        <div class="tt">Prendre une photo</div>
+        <div class="sb">ou choisir une image de la galerie</div>
+      </div>
+    </div>`;
+}
+
+/** Affiche la photo choisie : on ne transmet pas sa pièce d'identité à l'aveugle. */
+function apercuPiece(id) {
+  const input = document.getElementById(id);
+  const zone = document.getElementById(`pick-${id}`);
+  const corps = document.getElementById(`pickbody-${id}`);
+  const f = input && input.files && input.files[0];
+  if (!f) return;
+  // L'URL n'est pas révoquée au chargement : le navigateur la libérerait avant
+  // d'avoir fini de peindre l'image, et l'aperçu resterait vide. La précédente
+  // est libérée au remplacement, ce qui suffit sur un formulaire.
+  if (zone.dataset.url) URL.revokeObjectURL(zone.dataset.url);
+  const url = URL.createObjectURL(f);
+  zone.dataset.url = url;
+  zone.classList.add("done");
+  corps.innerHTML = `
+    <div class="pick-preview">
+      <img src="${url}" alt="Aperçu de la pièce">
+      <div>
+        <div class="nm">${f.name}</div>
+        <div class="ch">✓ Photo ajoutée — appuyez pour la remplacer</div>
+      </div>
+    </div>`;
+}
+
+/** Visuel de tête d'une carte d'offre : la photo, ou un substitut sobre. */
+function coverOffre(o) {
+  const photos = o.photos || [];
+  if (!photos.length) {
+    return `<div class="cover-wrap"><div class="cover-none"><span class="ic">${typeIcon(o.type)}</span><span class="tx">Photo à venir</span></div></div>`;
+  }
+  return `<div class="cover-wrap">
+    <img class="cover-thumb" src="${photos[0]}" alt="${esc(o.titre)}" loading="lazy">
+    ${photos.length > 1 ? `<span class="cover-count">📷 ${photos.length}</span>` : ""}
+  </div>`;
+}
+
 function typeIcon(t) { return { studio: "🏢", appartement: "🏠", maison: "🏡", villa: "🏰" }[t] || "🏠"; }
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
 
@@ -2205,6 +2326,20 @@ function eqGridHtml(checked = [], containerId = "") {
         <span class="eq-ic">${e.ic}</span>${e.label}
       </div>`).join("")}</div></div>`;
 }
+/**
+ * Échappe une valeur avant insertion dans du HTML.
+ *
+ * Les titres d'annonces, descriptions, messages et motifs de contestation sont
+ * saisis par les utilisateurs et rendus par interpolation de chaînes : sans
+ * échappement, un bailleur pouvait titrer son annonce avec une balise et
+ * exécuter du code chez tous les locataires qui la consultent — le jeton de
+ * session est dans localStorage.
+ */
+function esc(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
 function setBusy(id, busy) {
   const el = document.getElementById(id);
