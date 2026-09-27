@@ -358,7 +358,7 @@ function topbar() {
     forgot:"Mot de passe oublié", reset:"Nouveau mot de passe",
     home:"", admin_home:"", offres:"Rechercher", offre:"Offre", publier:"Publier une offre", modifier_offre:"Modifier l'offre",
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
-    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", profil:"Mon profil", notifications:"Notifications",
+    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", profil:"Mon profil", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
     carnet_loyer:"Carnet de loyer", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
@@ -433,6 +433,7 @@ function screen() {
     case "admin_biens": return sAdminBiens();
     case "admin_stats": return sAdminStats();
     case "admin_rappels": return sAdminRappels();
+    case "admin_litiges": return sAdminLitiges();
     case "profil": return sProfil();
     case "notifications": return sNotifications();
     default: return `<div class="center muted">Page introuvable</div>`;
@@ -737,7 +738,8 @@ function sAdminHome() {
   <div class="card" onclick="go('admin_biens')" style="cursor:pointer;"><div class="card-tt">🏘️ Vérification des biens</div><div class="card-sb">Titres de propriété en attente de contrôle</div></div>
   <div class="card" onclick="go('admin_signalements')" style="cursor:pointer;"><div class="card-tt">🚩 Signalements</div><div class="card-sb">Annonces signalées par les locataires</div></div>
   <div class="card" onclick="go('admin_stats')" style="cursor:pointer;"><div class="card-tt">📊 Tableau de bord</div><div class="card-sb">Entonnoir d'adoption V0</div></div>
-  <div class="card" onclick="go('admin_rappels')" style="cursor:pointer;"><div class="card-tt">⏰ Rappels automatiques</div><div class="card-sb">Fins de bail et loyers en retard — simuler ou envoyer</div></div>`;
+  <div class="card" onclick="go('admin_rappels')" style="cursor:pointer;"><div class="card-tt">⏰ Rappels automatiques</div><div class="card-sb">Fins de bail et loyers en retard — simuler ou envoyer</div></div>
+  <div class="card" onclick="go('admin_litiges')" style="cursor:pointer;"><div class="card-tt">⚖️ Litiges de paiement</div><div class="card-sb">Mois de loyer contestés entre bailleur et locataire</div></div>`;
 }
 
 /* ── Offres (recherche publique) ── */
@@ -1595,14 +1597,46 @@ async function loadCarnetLoyer(contratId) {
   const box = document.getElementById("carnetBox");
   try {
     const r = await api(`/paiements/contrat/${contratId}`);
-    const STATUT_LABEL = { paye: "✓ Payé", en_retard: "⚠️ En retard", du_ce_mois: "🕐 Dû ce mois-ci", a_venir: "À venir" };
-    const STATUT_CLASS = { paye: "bdg-gr", en_retard: "bdg-rd", du_ce_mois: "bdg-or", a_venir: "" };
+    state.cache.carnetBailleur = r.je_suis_bailleur;
+    const STATUT_LABEL = {
+      paye: "✓ Payé", en_attente_confirmation: "⏳ À confirmer", conteste: "⚠️ Contesté",
+      en_retard: "⚠️ En retard", du_ce_mois: "🕐 Dû ce mois-ci", a_venir: "À venir",
+    };
+    const STATUT_CLASS = {
+      paye: "bdg-gr", en_attente_confirmation: "bdg-or", conteste: "bdg-rd",
+      en_retard: "bdg-rd", du_ce_mois: "bdg-or", a_venir: "",
+    };
     const moisFr = (cle) => {
       const [an, m] = cle.split("-");
       return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"][Number(m) - 1] + " " + an;
     };
+    const bailleur = r.je_suis_bailleur;
+
+    // Les actions dépendent du statut du mois ET du côté où l'on se trouve :
+    // seul le bailleur confirme, et personne ne conteste sa propre déclaration.
+    function actions(e) {
+      const btns = [];
+      if (e.statut === "paye") {
+        btns.push(`<button class="btn btn-o btn-sm" onclick="voirRecu(${contratId},'${e.mois}')">📄 Reçu</button>`);
+      }
+      if (e.statut === "en_attente_confirmation") {
+        if (bailleur) {
+          btns.push(`<button class="btn btn-g btn-sm" onclick="doConfirmerPaiement(${contratId},'${e.mois}')">Confirmer la réception</button>`);
+          btns.push(`<button class="btn btn-o btn-sm" onclick="ouvrirContestation('${e.mois}')">Contester</button>`);
+        } else if (!e.declare_par_moi) {
+          btns.push(`<button class="btn btn-o btn-sm" onclick="ouvrirContestation('${e.mois}')">Contester</button>`);
+        }
+      }
+      if (e.statut === "conteste" || e.statut === "en_retard" || e.statut === "du_ce_mois") {
+        btns.push(`<button class="btn btn-g btn-sm" onclick="doMarquerPaye(${contratId},'${e.mois}',${e.montant_usd})">${bailleur ? "Marquer reçu" : "Déclarer payé"}</button>`);
+      }
+      return btns.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${btns.join("")}</div>` : "";
+    }
+
     box.innerHTML = `
       ${r.mois_en_retard > 0 ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;margin-bottom:14px;"><div class="card-tt" style="color:#9C4A2E;">⚠️ ${r.mois_en_retard} mois en retard</div><div class="card-sb">À régulariser au plus vite avec l'autre partie.</div></div>` : ""}
+      ${r.mois_a_confirmer > 0 && bailleur ? `<div class="card" style="border-color:#D9C08A;background:#FCF7EA;margin-bottom:14px;"><div class="card-tt">⏳ ${r.mois_a_confirmer} mois à confirmer</div><div class="card-sb">Votre locataire déclare avoir payé. Confirmez la réception pour solder ces mois.</div></div>` : ""}
+      ${r.mois_contestes > 0 ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;margin-bottom:14px;"><div class="card-tt" style="color:#9C4A2E;">⚠️ ${r.mois_contestes} mois contesté(s)</div><div class="card-sb">L'équipe IBS en est informée. Rapprochez-vous de l'autre partie.</div></div>` : ""}
       ${r.echeancier.map(e => `
         <div class="card">
           <div class="row">
@@ -1610,15 +1644,59 @@ async function loadCarnetLoyer(contratId) {
             <span class="bdg ${STATUT_CLASS[e.statut] || "bdg-or"}">${STATUT_LABEL[e.statut] || e.statut}</span>
           </div>
           <div class="card-sb">${e.montant_usd} USD${e.moyen ? " · " + e.moyen : ""}</div>
-          ${e.statut !== "paye" && e.statut !== "a_venir" ? `<button class="btn btn-g btn-sm" style="margin-top:10px;" onclick="doMarquerPaye(${contratId},'${e.mois}',${e.montant_usd})">Marquer payé</button>` : ""}
+          ${e.statut === "en_attente_confirmation" && !bailleur && e.declare_par_moi ? `<div class="card-sb" style="margin-top:6px;">En attente de confirmation par votre bailleur.</div>` : ""}
+          ${e.motif_contestation ? `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">Motif : ${e.motif_contestation}</div>` : ""}
+          ${actions(e)}
+          <div id="contest-${e.mois}" style="display:none;margin-top:10px;">
+            <div class="fg"><label class="fl">Motif de la contestation</label><textarea class="fi" id="motif-${e.mois}" rows="2" placeholder="Expliquez pourquoi vous contestez ce paiement…"></textarea></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-g btn-sm" onclick="doContester(${contratId},'${e.mois}')">Envoyer la contestation</button>
+              <button class="btn btn-o btn-sm" onclick="fermerContestation('${e.mois}')">Annuler</button>
+            </div>
+          </div>
         </div>`).join("")}
     `;
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
+
+function ouvrirContestation(mois) {
+  const el = document.getElementById(`contest-${mois}`);
+  if (el) { el.style.display = "block"; const t = document.getElementById(`motif-${mois}`); if (t) t.focus(); }
+}
+function fermerContestation(mois) {
+  const el = document.getElementById(`contest-${mois}`);
+  if (el) el.style.display = "none";
+}
+
+function voirRecu(contratId, mois) {
+  window.open(`${API_BASE}/paiements/${contratId}/recu/${mois}?token=${encodeURIComponent(state.token)}`, "_blank");
+}
+
 async function doMarquerPaye(contratId, mois, montant) {
   try {
-    await api("/paiements", { method: "POST", body: JSON.stringify({ contrat_id: contratId, mois, montant_usd: montant }) });
-    toast("Mois marqué comme payé.", "✅");
+    const r = await api("/paiements", { method: "POST", body: JSON.stringify({ contrat_id: contratId, mois, montant_usd: montant }) });
+    // Le message vient du serveur : c'est lui qui sait si le mois est soldé ou
+    // s'il attend encore la confirmation du bailleur.
+    toast(r.message, r.statut === "confirme" ? "✅" : "📩");
+    loadCarnetLoyer(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doConfirmerPaiement(contratId, mois) {
+  if (!window.confirm("Confirmer avoir bien reçu ce loyer ?\n\nLe mois sera soldé et un reçu deviendra disponible pour votre locataire.")) return;
+  try {
+    await api(`/paiements/${contratId}/${mois}/confirmer`, { method: "POST" });
+    toast("Paiement confirmé.", "✅");
+    loadCarnetLoyer(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doContester(contratId, mois) {
+  const motif = val(`motif-${mois}`);
+  if (motif.length < 5) return toast("Expliquez brièvement votre contestation (5 caractères minimum).", "⚠️");
+  try {
+    await api(`/paiements/${contratId}/${mois}/contester`, { method: "POST", body: JSON.stringify({ motif }) });
+    toast("Contestation enregistrée. L'autre partie est prévenue.", "📩");
     loadCarnetLoyer(contratId);
   } catch (e) { toast(e.message, "⚠️"); }
 }
@@ -1927,6 +2005,43 @@ async function reviewBien(id, decision) {
    Le planificateur tourne seul toutes les 12 h. Cet écran sert à voir ce
    qu'il enverrait avant qu'il ne le fasse : chaque rappel est un SMS
    facturé, et un message parti ne se rattrape pas. */
+/* ── Litiges de paiement (admin) ─────────────────────────────────────────
+   IBS constate le désaccord et en conserve la trace ; elle ne tranche pas.
+   Cet écran sert à voir les litiges monter et à joindre les parties. */
+function sAdminLitiges() {
+  setTimeout(loadAdminLitiges, 0);
+  return `<div id="litigesBox"><div class="center muted">Chargement…</div></div>`;
+}
+
+async function loadAdminLitiges() {
+  const box = document.getElementById("litigesBox");
+  try {
+    const r = await api("/paiements/admin/litiges");
+    if (!r.total) {
+      box.innerHTML = `<div class="center muted" style="padding-top:20px;">Aucun paiement contesté.</div>`;
+      return;
+    }
+    const moisFr = (cle) => {
+      const [an, m] = cle.split("-");
+      return ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"][Number(m) - 1] + " " + an;
+    };
+    box.innerHTML = `
+      <div class="h1" style="font-size:16px;">${r.total} litige${r.total > 1 ? "s" : ""} en cours</div>
+      <div class="sub">IBS conserve la trace du désaccord. Le règlement se fait entre les parties.</div>
+      ${r.litiges.map(l => `
+        <div class="card">
+          <div class="row">
+            <span class="card-tt">${l.titre} — ${l.commune}</span>
+            <span class="bdg bdg-rd">${moisFr(l.mois)}</span>
+          </div>
+          <div class="card-sb">${l.montant_usd} USD · contesté le ${new Date(l.conteste_at).toLocaleDateString("fr-FR")}</div>
+          <div class="st"><div class="st-k">Déclaré par</div><div class="st-v">${l.declare_par_nom || "—"}<br><span class="muted" style="font-weight:400;">${l.declare_par_tel || ""}</span></div></div>
+          <div class="st"><div class="st-k">Contesté par</div><div class="st-v">${l.conteste_par_nom || "—"}<br><span class="muted" style="font-weight:400;">${l.conteste_par_tel || ""}</span></div></div>
+          <div class="st"><div class="st-k">Motif</div><div class="st-v" style="font-weight:400;">${l.motif_contestation}</div></div>
+        </div>`).join("")}`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
 function sAdminRappels() {
   return `
   <div class="h1">Rappels automatiques</div>
