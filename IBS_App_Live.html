@@ -358,7 +358,7 @@ function topbar() {
     forgot:"Mot de passe oublié", reset:"Nouveau mot de passe",
     home:"", admin_home:"", offres:"Rechercher", offre:"Offre", publier:"Publier une offre", modifier_offre:"Modifier l'offre",
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
-    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", profil:"Mon profil", notifications:"Notifications",
+    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", profil:"Mon profil", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
     carnet_loyer:"Carnet de loyer", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
@@ -432,6 +432,7 @@ function screen() {
     case "admin_cni": return sAdminCni();
     case "admin_biens": return sAdminBiens();
     case "admin_stats": return sAdminStats();
+    case "admin_rappels": return sAdminRappels();
     case "profil": return sProfil();
     case "notifications": return sNotifications();
     default: return `<div class="center muted">Page introuvable</div>`;
@@ -735,7 +736,8 @@ function sAdminHome() {
   <div class="card" onclick="go('admin_cni')" style="cursor:pointer;"><div class="card-tt">🪪 Vérification CNI</div><div class="card-sb">Comptes en attente de contrôle</div></div>
   <div class="card" onclick="go('admin_biens')" style="cursor:pointer;"><div class="card-tt">🏘️ Vérification des biens</div><div class="card-sb">Titres de propriété en attente de contrôle</div></div>
   <div class="card" onclick="go('admin_signalements')" style="cursor:pointer;"><div class="card-tt">🚩 Signalements</div><div class="card-sb">Annonces signalées par les locataires</div></div>
-  <div class="card" onclick="go('admin_stats')" style="cursor:pointer;"><div class="card-tt">📊 Tableau de bord</div><div class="card-sb">Entonnoir d'adoption V0</div></div>`;
+  <div class="card" onclick="go('admin_stats')" style="cursor:pointer;"><div class="card-tt">📊 Tableau de bord</div><div class="card-sb">Entonnoir d'adoption V0</div></div>
+  <div class="card" onclick="go('admin_rappels')" style="cursor:pointer;"><div class="card-tt">⏰ Rappels automatiques</div><div class="card-sb">Fins de bail et loyers en retard — simuler ou envoyer</div></div>`;
 }
 
 /* ── Offres (recherche publique) ── */
@@ -1921,6 +1923,55 @@ async function reviewBien(id, decision) {
 }
 
 /* ── Admin : stats ── */
+/* ── Rappels automatiques (admin) ────────────────────────────────────────
+   Le planificateur tourne seul toutes les 12 h. Cet écran sert à voir ce
+   qu'il enverrait avant qu'il ne le fasse : chaque rappel est un SMS
+   facturé, et un message parti ne se rattrape pas. */
+function sAdminRappels() {
+  return `
+  <div class="h1">Rappels automatiques</div>
+  <div class="sub">Fins de bail à moins de 30 jours et loyers en retard. Un rappel par contrat et par semaine au maximum.</div>
+  <div class="card">
+    <div class="card-tt">Simulation</div>
+    <div class="card-sb">Affiche les SMS qui partiraient, sans en envoyer aucun et sans consommer les compteurs.</div>
+    <button class="btn btn-g" id="btnSimuler" onclick="doRappels(true)" style="margin-top:10px;">Simuler un tour</button>
+  </div>
+  <div class="card">
+    <div class="card-tt">Envoi réel</div>
+    <div class="card-sb">Envoie les SMS pour de vrai. Irréversible, et facturé sur le crédit Africa's Talking.</div>
+    <button class="btn" id="btnEnvoyer" onclick="doRappels(false)" style="margin-top:10px;">Envoyer les rappels</button>
+  </div>
+  <div id="rappelsBox"></div>`;
+}
+
+async function doRappels(simulation) {
+  if (!simulation && !window.confirm("Envoyer réellement les rappels par SMS ?\n\nCes messages partiront immédiatement et seront facturés. Simulez d'abord si vous n'avez pas encore vu ce qu'ils contiennent.")) return;
+
+  const bouton = simulation ? "btnSimuler" : "btnEnvoyer";
+  const box = document.getElementById("rappelsBox");
+  setBusy(bouton, true);
+  box.innerHTML = `<div class="center muted" style="padding-top:14px;">${simulation ? "Simulation en cours…" : "Envoi en cours…"}</div>`;
+  try {
+    const r = await api(`/rappels/executer${simulation ? "?simulation=true" : ""}`, { method: "POST" });
+    const apercu = (r.apercu || []).map((m) =>
+      `<div class="st"><div class="st-k">👤 ${m.nom || "#" + m.destinataire_id}<br><span class="muted" style="font-weight:400;">${m.telephone || ""}</span></div><div class="st-v" style="font-weight:400;">${m.message}</div></div>`
+    ).join("");
+    box.innerHTML = `
+      <div class="card" style="margin-top:6px;">
+        <div class="card-tt">${simulation ? "Résultat de la simulation" : "Rappels envoyés"}</div>
+        <div class="st"><div class="st-k">Fins de bail</div><div class="st-v">${r.fins_de_bail_signalees}</div></div>
+        <div class="st"><div class="st-k">Loyers en retard</div><div class="st-v">${r.retards_de_loyer_signales}</div></div>
+        <div class="st"><div class="st-k">SMS ${simulation ? "qui partiraient" : "envoyés"}</div><div class="st-v">${r.sms}</div></div>
+      </div>
+      ${apercu ? `<div class="card"><div class="card-tt">Aperçu des messages</div>${apercu}</div>` : ""}
+      ${simulation && r.sms === 0 ? `<div class="center muted" style="padding-top:10px;">Rien à envoyer : soit aucune échéance n'approche, soit les rappels de cette semaine sont déjà partis.</div>` : ""}`;
+    toast(simulation ? `Simulation : ${r.sms} SMS partiraient.` : `${r.sms} SMS envoyés.`, simulation ? "🔍" : "✅");
+  } catch (e) {
+    box.innerHTML = `<div class="center muted" style="padding-top:14px;">${e.message}</div>`;
+    toast(e.message, "⚠️");
+  } finally { setBusy(bouton, false); }
+}
+
 function sAdminStats() {
   setTimeout(loadAdminStats, 0);
   return `<div id="statsBox"><div class="center muted">Chargement…</div></div>`;
