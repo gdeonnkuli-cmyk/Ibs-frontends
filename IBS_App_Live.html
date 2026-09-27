@@ -242,23 +242,54 @@ const REGISTRATION_OPEN = true;
 // Connexion temporairement court-circuitée : entre directement dans l'app en mode démo (à remettre à true pour la réactiver)
 const LOGIN_OPEN = true;
 const DEMO_USER = { id: 0, nom: "Mode démo", role: "bailleur", telephone: "", commune: "", cni_statut: "verifie" };
-// Galerie photos : compte Cloudinary gratuit requis (upload direct depuis le navigateur, sans passer par le serveur).
-// Créer un compte sur cloudinary.com, un "Upload preset" en mode "Unsigned", puis renseigner les 2 valeurs ci-dessous.
-const CLOUDINARY_CLOUD_NAME = "";   // ex : "dabcxyz12"
-const CLOUDINARY_UPLOAD_PRESET = ""; // ex : "ibs_offres_unsigned"
-async function uploadPhotosToCloudinary(files) {
-  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    toast("Galerie photo non configurée (Cloudinary). L'offre sera publiée sans photos.", "⚠️");
-    return [];
+/* ── Téléversement des fichiers ──────────────────────────────────────────
+   Plus aucune clé Cloudinary dans cette page : le serveur signe chaque
+   dépôt (POST /uploads/signature) et le navigateur envoie le fichier
+   directement à l'hébergeur. Rien à configurer ici, et l'API n'accepte
+   que les URLs issues de son propre espace de stockage.
+
+   Si le serveur n'a pas de stockage configuré il répond 503 : on le
+   signale au lieu d'échouer silencieusement. */
+async function uploadFichier(file, dossier) {
+  const sig = await api("/uploads/signature", {
+    method: "POST",
+    body: JSON.stringify({ dossier }),
+  });
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("api_key", sig.api_key);
+  fd.append("timestamp", sig.timestamp);
+  fd.append("folder", sig.folder);
+  fd.append("signature", sig.signature);
+  let r;
+  try {
+    r = await fetch(sig.upload_url, { method: "POST", body: fd });
+  } catch {
+    // fetch échoue en "Failed to fetch" : illisible. Sur un réseau mobile
+    // kinois, la coupure est le cas le plus probable — autant le dire.
+    throw new Error("Envoi impossible : vérifiez votre connexion et réessayez.");
   }
+  const j = await r.json().catch(() => null);
+  if (!j || !j.secure_url) throw new Error("Le téléversement du fichier a échoué. Réessayez.");
+  return j.secure_url;
+}
+
+function stockageIndisponible(e) {
+  return /stockage/i.test(e.message || "");
+}
+
+async function uploadPhotosToCloudinary(files) {
   const urls = [];
   for (const file of files) {
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-    const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: fd });
-    const j = await r.json();
-    if (j.secure_url) urls.push(j.secure_url);
+    try {
+      urls.push(await uploadFichier(file, "photos"));
+    } catch (e) {
+      if (stockageIndisponible(e)) {
+        toast("Stockage photo non configuré sur le serveur. L'offre sera publiée sans photos.", "⚠️");
+        return [];
+      }
+      toast(`Photo « ${file.name} » non envoyée : ${e.message}`, "⚠️");
+    }
   }
   return urls;
 }
@@ -452,7 +483,7 @@ function sRegister() {
     <div class="fhelp">Obligatoire pour les intermédiaires — contrôlé par l'équipe IBS comme la CNI.</div>
   </div>` : ""}
   <div class="fg"><label class="fl">CNI — recto</label><input class="fi" id="rCniR" type="file" accept="image/*">
-    <div class="fhelp">Stockage réel des fichiers prévu en Phase 1 — le nom du fichier suffit pour ce test.</div>
+    <div class="fhelp">Photo nette et lisible. Le fichier est transmis de façon sécurisée à l'équipe IBS pour vérification.</div>
   </div>
   <div class="fg"><label class="fl">CNI — verso</label><input class="fi" id="rCniV" type="file" accept="image/*"></div>
   <button class="btn btn-g" id="btnRegister" onclick="doRegister('${role}')">Créer mon compte</button>
@@ -468,9 +499,25 @@ async function doRegister(role) {
   if (role === "intermediaire" && !val("rAgrement")) return toast("Le numéro d'agrément ou RCCM est obligatoire.", "⚠️");
   setBusy("btnRegister", true);
   try {
+    // La CNI part d'abord chez l'hébergeur : sans cela l'équipe IBS n'a aucun
+    // document à vérifier, seulement un nom de fichier resté sur le téléphone.
+    let rectoUrl, versoUrl;
+    try {
+      toast("Envoi de votre CNI…", "📤");
+      rectoUrl = await uploadFichier(cniR, "cni");
+      versoUrl = await uploadFichier(cniV, "cni");
+    } catch (e) {
+      if (!stockageIndisponible(e)) throw e;
+      // Serveur sans stockage : on n'empêche pas l'inscription, mais la pièce
+      // devra être fournie autrement.
+      rectoUrl = "local://" + cniR.name;
+      versoUrl = "local://" + cniV.name;
+      toast("Stockage non configuré : votre CNI devra être transmise à l'équipe IBS.", "⚠️");
+    }
+
     await api("/auth/register", { method: "POST", body: JSON.stringify({
       role, nom, telephone, password, commune,
-      cni_recto_url: "local://" + cniR.name, cni_verso_url: "local://" + cniV.name,
+      cni_recto_url: rectoUrl, cni_verso_url: versoUrl,
       agrement_ou_rccm: role === "intermediaire" ? val("rAgrement") : undefined,
       nom_agence: role === "intermediaire" ? val("rAgence") : undefined,
     })});
@@ -487,7 +534,7 @@ function sVerify() {
   <div class="center">
     <div style="font-size:34px;">📩</div>
     <div class="h1">Vérification du téléphone</div>
-    <div class="sub">Code envoyé au <b>${tel}</b><br>(SMS simulé en V0 — vérifiez avec l'équipe IBS pour le code de test)</div>
+    <div class="sub">Code envoyé au <b>${tel}</b><br>Le code est valable 5 minutes.</div>
   </div>
   <div class="fg"><label class="fl">Code reçu par SMS</label><input class="fi" id="vCode" placeholder="6 chiffres" maxlength="6" style="text-align:center;letter-spacing:6px;font-size:18px;font-weight:700;"></div>
   <button class="btn btn-g" id="btnVerify" onclick="doVerify('${tel}')">Vérifier</button>
