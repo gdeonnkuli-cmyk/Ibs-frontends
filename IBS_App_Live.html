@@ -2508,9 +2508,10 @@ async function loadAdminFinBail() {
 }
 
 function sAdminRappels() {
+  setTimeout(loadReglesRappels, 0);
   return `
   <div class="h1">Rappels automatiques</div>
-  <div class="sub">Fins de bail à moins de 30 jours et loyers en retard. Un rappel par contrat et par semaine au maximum.</div>
+  <div class="sub" id="rappelsRegles">Chargement des règles en vigueur…</div>
   <div class="card">
     <div class="card-tt">Simulation</div>
     <div class="card-sb">Affiche les SMS qui partiraient, sans en envoyer aucun et sans consommer les compteurs.</div>
@@ -2522,6 +2523,25 @@ function sAdminRappels() {
     <button class="btn" id="btnEnvoyer" onclick="doRappels(false)" style="margin-top:10px;">Envoyer les rappels</button>
   </div>
   <div id="rappelsBox"></div>`;
+}
+
+/* Les durées viennent du serveur : les réécrire ici, c'est ce qui a laissé
+   « fins de bail à moins de 30 jours » affiché alors que la fenêtre en faisait
+   cent. */
+async function loadReglesRappels() {
+  const box = document.getElementById("rappelsRegles");
+  if (!box) return;
+  try {
+    const r = await api("/rappels/regles");
+    const cadence = r.relance_lointaine_jours === r.relance_jours
+      ? `Un rappel par bail tous les ${r.relance_jours} jours au maximum.`
+      : `Un rappel par semaine tant que le congé reste possible et dans les ${r.jours_urgence} derniers jours, `
+        + `tous les ${r.relance_lointaine_jours} jours entre les deux.`;
+    box.innerHTML = `Fins de bail à moins de ${r.jours_alerte_fin} jours et loyers en retard. ${cadence}`
+      + (r.actif ? "" : ` <span style="color:#9C4A2E;">Envoi automatique désactivé — seul l'envoi manuel ci-dessous fonctionne.</span>`);
+  } catch (e) {
+    box.textContent = "Règles indisponibles : " + e.message;
+  }
 }
 
 async function doRappels(simulation) {
@@ -2544,7 +2564,7 @@ async function doRappels(simulation) {
         <div class="st"><div class="st-k">SMS ${simulation ? "qui partiraient" : "envoyés"}</div><div class="st-v">${r.sms}</div></div>
       </div>
       ${apercu ? `<div class="card"><div class="card-tt">Aperçu des messages</div>${apercu}</div>` : ""}
-      ${simulation && r.sms === 0 ? `<div class="center muted" style="padding-top:10px;">Rien à envoyer : soit aucune échéance n'approche, soit les rappels de cette semaine sont déjà partis.</div>` : ""}`;
+      ${simulation && r.sms === 0 ? `<div class="center muted" style="padding-top:10px;">Rien à envoyer : soit aucune échéance n'approche, soit les rappels de la période sont déjà partis.</div>` : ""}`;
     toast(simulation ? `Simulation : ${r.sms} SMS partiraient.` : `${r.sms} SMS envoyés.`, simulation ? "🔍" : "✅");
   } catch (e) {
     box.innerHTML = `<div class="center muted" style="padding-top:14px;">${e.message}</div>`;
