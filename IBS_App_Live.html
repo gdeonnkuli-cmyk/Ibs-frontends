@@ -1728,7 +1728,7 @@ async function loadFinBail(contratId) {
         <div class="fg" style="margin-top:10px;"><label class="fl">Motif (facultatif)</label>
           <input class="fi" id="fbMotif" placeholder="Ex. : reprise du bien, déménagement…"></div>
         <div class="fg"><label class="fl">Préavis en jours</label>
-          <input class="fi" id="fbJours" type="number" value="30" min="1" max="365">
+          <input class="fi" id="fbJours" type="number" value="${r.preavis_jours_defaut || 40}" min="1" max="365">
           <div class="fhelp">Vérifiez la durée prévue à votre contrat.</div></div>
         <button class="btn btn-g btn-sm" onclick="doPreavis(${contratId})">Donner congé</button>`;
     }
@@ -1881,7 +1881,7 @@ function ouvrirContestGarantie() { const e = document.getElementById("contestg")
 
 async function doPreavis(contratId) {
   const motif = val("fbMotif");
-  const jours = Number(val("fbJours")) || 30;
+  const jours = Number(val("fbJours")) || (state.cache.finBail && state.cache.finBail.preavis_jours_defaut) || 40;
   if (!window.confirm(`Donner congé avec un préavis de ${jours} jours ?\\n\\nL'autre partie en sera informée par SMS.`)) return;
   try {
     const r = await api(`/bail/${contratId}/preavis`, { method: "POST", body: JSON.stringify({ motif, preavis_jours: jours }) });
