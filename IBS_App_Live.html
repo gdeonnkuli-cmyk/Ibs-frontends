@@ -393,11 +393,48 @@ async function boot() {
     try {
       const r = await api("/auth/me");
       state.user = r.user;
+      const retour = await traiterRetourPaiement();
+      if (retour) return;
       go(state.user.role === "admin" ? "admin_home" : "home");
       return;
     } catch { state.token = null; localStorage.removeItem("ibs_token"); }
   }
   go("welcome");
+}
+
+/* La passerelle renvoie le locataire sur l'application avec le résultat en
+   paramètres d'URL. Sans ce traitement, il reviendrait sur l'accueil et son
+   mois resterait dû à l'écran jusqu'à l'arrivée du webhook. */
+async function traiterRetourPaiement() {
+  const p = new URLSearchParams(location.search);
+  const tx_ref = p.get("tx_ref");
+  if (!tx_ref || !tx_ref.startsWith("IBS-LOYER-")) return false;
+
+  const transaction_id = p.get("transaction_id");
+  const statut = p.get("status");
+  const contratId = Number(localStorage.getItem("ibs_paiement_contrat")) || null;
+  // L'URL est nettoyée tout de suite : un rechargement ne doit pas rejouer le
+  // retour, et la référence n'a rien à faire dans l'historique du navigateur.
+  history.replaceState(null, "", location.pathname);
+  localStorage.removeItem("ibs_paiement_contrat");
+
+  const revenir = () => contratId ? go("carnet_loyer", { id: contratId }) : go("home");
+
+  if (statut !== "successful" || !transaction_id) {
+    toast("Paiement non abouti. Votre mois reste dû.", "⚠️");
+    revenir();
+    return true;
+  }
+  try {
+    await api("/encaissement/verifier", { method: "POST", body: JSON.stringify({ transaction_id, tx_ref }) });
+    toast("Loyer réglé. Votre carnet est à jour.", "✅");
+  } catch (e) {
+    // Le webhook reste le filet : ne pas affirmer l'échec là où l'argent est
+    // peut-être parti.
+    toast("Paiement en cours de confirmation : " + e.message, "⏳");
+  }
+  revenir();
+  return true;
 }
 
 /* ============================================================ */
@@ -417,7 +454,7 @@ function topbar() {
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
     admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", admin_fin_bail:"Litiges de fin de bail", profil:"Mon profil", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
-    carnet_loyer:"Carnet de loyer", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
+    carnet_loyer:"Carnet de loyer", encaissement:"Recevoir les loyers", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
     quartier:"Avis du quartier", quartier_avis_form:"Noter le quartier", budget:"Simulateur de budget",
   };
@@ -472,6 +509,7 @@ function screen() {
     case "mine": return isBailleurLike(state.user.role) ? sMesOffres() : sMesCandidatures();
     case "mes_contrats": return sMesContrats();
     case "carnet_loyer": return sCarnetLoyer(state.params.id);
+    case "encaissement": return sCompteEncaissement();
     case "fin_bail": return sFinBail(state.params.id);
     case "avis_form": return sAvisForm(state.params.id);
     case "messages": return sThreadsList();
@@ -775,7 +813,7 @@ async function loadHome() {
 
   const raccourcis = isBailleurLike(u.role)
     ? [["dossier", "Publier une offre", "publier"], ["document", "Candidatures", "demandes"], ["message", "Messages", "messages"],
-       ["document", "Mes documents", "mes_documents"], ["etoile", "Classement", "classement"], ["profil", "Mon profil", "profil"]]
+       ["carte", "Recevoir les loyers", "encaissement"], ["document", "Mes documents", "mes_documents"], ["etoile", "Classement", "classement"]]
     : [["recherche", "Chercher un logement", "offres"], ["coeur", "Mes favoris", "favoris"], ["cloche", "Mes alertes", "alertes"],
        ["message", "Messages", "messages"], ["billet", "Simulateur de budget", "budget"], ["profil", "Mon profil", "profil"]];
 
@@ -2010,7 +2048,12 @@ async function loadCarnetLoyer(contratId) {
         }
       }
       if (e.statut === "conteste" || e.statut === "en_retard" || e.statut === "du_ce_mois") {
-        btns.push(`<button class="btn btn-g btn-sm" onclick="doMarquerPaye(${contratId},'${e.mois}',${e.montant_usd})">${bailleur ? "Marquer reçu" : "Déclarer payé"}</button>`);
+        // Payer en ligne prime sur déclarer : la déclaration n'est qu'un
+        // pis-aller quand l'argent est passé de la main à la main.
+        if (!bailleur && r.paiement_mobile_possible) {
+          btns.push(`<button class="btn btn-g btn-sm" onclick="doPayerMobile(${contratId},'${e.mois}')">${icone("carte", 14)} Payer ${e.montant_usd} $</button>`);
+        }
+        btns.push(`<button class="btn btn-o btn-sm" onclick="doMarquerPaye(${contratId},'${e.mois}',${e.montant_usd})">${bailleur ? "Marquer reçu" : "Déjà payé autrement"}</button>`);
       }
       return btns.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${btns.join("")}</div>` : "";
     }
@@ -2093,6 +2136,93 @@ async function doMarquerPaye(contratId, mois, montant) {
     // s'il attend encore la confirmation du bailleur.
     toast(r.message, r.statut === "confirme" ? "✅" : "📩");
     loadCarnetLoyer(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+/* ── Compte d'encaissement (bailleur) ──
+   Tant qu'il n'est pas déclaré, aucun locataire ne peut payer en ligne : c'est
+   ce compte qui reçoit les fonds, IBS ne les détient jamais. */
+function sCompteEncaissement() {
+  setTimeout(loadCompteEncaissement, 0);
+  return `<div id="encBox"><div class="center muted">Chargement…</div></div>`;
+}
+
+const OPERATEUR_LABEL = {
+  "m-pesa": "M-Pesa (Vodacom)", "orange-money": "Orange Money",
+  "airtel-money": "Airtel Money", "africell-money": "Africell Money",
+};
+
+async function loadCompteEncaissement() {
+  const box = document.getElementById("encBox");
+  try {
+    const r = await api("/encaissement/compte");
+    const ops = (r.operateurs || []).map((o) =>
+      `<option value="${esc(o)}">${esc(OPERATEUR_LABEL[o] || o)}</option>`).join("");
+
+    box.innerHTML = `
+      <div class="h1" style="font-size:17px;">Recevoir les loyers</div>
+      <div class="sub">Le compte que vous déclarez ici reçoit directement les loyers payés en ligne. IBS ne détient jamais ces fonds.</div>
+
+      ${r.configure ? `
+        <div class="card" style="border-color:#BFD9C9;background:var(--GRD);">
+          <div class="row"><span class="card-tt">Compte déclaré</span>
+            <span class="bdg ${r.relie ? "bdg-gr" : "bdg-or"}">${r.relie ? "Actif" : "Non relié"}</span></div>
+          <div class="st"><div class="st-k">Type</div><div class="st-v">${r.type === "mobile_money" ? esc(OPERATEUR_LABEL[r.operateur] || r.operateur) : "Compte bancaire"}</div></div>
+          <div class="st"><div class="st-k">Numéro</div><div class="st-v">${esc(r.numero)}</div></div>
+          <div class="st"><div class="st-k">Titulaire</div><div class="st-v">${esc(r.titulaire)}</div></div>
+          ${r.relie ? `<div class="card-sb" style="margin-top:8px;">Vos locataires peuvent payer leur loyer depuis l'application.</div>` : ""}
+        </div>` : `
+        <div class="card">
+          <div class="card-tt">Aucun compte déclaré</div>
+          <div class="card-sb">Vos locataires ne peuvent pas encore payer en ligne. Ils continuent de régler de la main à la main et de le déclarer dans le carnet.</div>
+        </div>`}
+
+      <div class="card">
+        <div class="card-tt">${r.configure ? "Changer de compte" : "Déclarer un compte"}</div>
+        <div class="fg" style="margin-top:8px;"><label class="fl">Opérateur</label>
+          <select class="fi" id="encOp">${ops}</select></div>
+        <div class="fg"><label class="fl">Numéro Mobile Money</label>
+          <input class="fi" id="encNum" placeholder="+243 8XX XXX XXX" inputmode="tel">
+          <div class="fhelp">Le numéro sur lequel vous voulez recevoir les loyers.</div></div>
+        <div class="fg"><label class="fl">Nom du titulaire</label>
+          <input class="fi" id="encTit" placeholder="Tel qu'enregistré chez l'opérateur" value="${esc((state.user && state.user.nom) || "")}">
+          <div class="fhelp">Il doit correspondre exactement, sinon l'opérateur refusera les versements.</div></div>
+        <button class="btn btn-g" id="btnEnc" onclick="doCompteEncaissement()">${r.configure ? "Mettre à jour" : "Déclarer ce compte"}</button>
+      </div>
+
+      <div class="card">
+        <div class="card-tt">Comment l'argent circule</div>
+        <div class="card-sb" style="line-height:1.7;">
+          Votre locataire paie depuis l'application. La passerelle verse le loyer
+          sur le compte ci-dessus, sans passer par IBS. Le mois est soldé
+          automatiquement dans le carnet : vous n'avez rien à confirmer.
+        </div>
+      </div>`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+async function doCompteEncaissement() {
+  const numero = val("encNum"), titulaire = val("encTit");
+  const operateur = (document.getElementById("encOp") || {}).value;
+  if (numero.length < 6) return toast("Numéro invalide.", "⚠️");
+  if (titulaire.length < 3) return toast("Le nom du titulaire est requis.", "⚠️");
+  if (!window.confirm(`Recevoir vos loyers sur ce numéro ?\n\n${numero}\n${titulaire}\n\nVérifiez-le : c'est là que l'argent sera versé.`)) return;
+  setBusy("btnEnc", true);
+  try {
+    const r = await api("/encaissement/compte", { method: "POST",
+      body: JSON.stringify({ type: "mobile_money", operateur, numero, titulaire }) });
+    toast(r.message, "✅");
+    loadCompteEncaissement();
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnEnc", false); }
+}
+
+async function doPayerMobile(contratId, mois) {
+  try {
+    const r = await api(`/encaissement/${contratId}/${mois}/initier`, { method: "POST" });
+    // Retenu avant de quitter l'application : au retour, c'est ce qui permet de
+    // ramener le locataire sur le bon carnet plutôt que sur l'accueil.
+    localStorage.setItem("ibs_paiement_contrat", String(contratId));
+    location.href = r.link;
   } catch (e) { toast(e.message, "⚠️"); }
 }
 
