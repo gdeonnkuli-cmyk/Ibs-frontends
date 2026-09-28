@@ -70,6 +70,9 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .st{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(13,27,62,.06);font-size:12.5px;}
 .st:last-child{border-bottom:none;}
 .st-k{color:var(--TX2);}
+.st-col{display:block;padding:8px 0;border-bottom:1px solid rgba(13,27,62,.06);font-size:12.5px;}
+.st-col .st-k{display:block;margin-bottom:3px;}
+.st-col .st-v{font-weight:400;color:var(--TX);}
 .st-v{font-weight:700;color:var(--N);}
 
 /* nav */
@@ -185,6 +188,7 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   padding:3px 8px;border-radius:20px;backdrop-filter:blur(2px);}
 .photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--LN);}
+.mini-photo{cursor:zoom-in;}
 .photo-thumb-wrap{position:relative;}
 .photo-x{position:absolute;top:-6px;right:-6px;background:var(--RD);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;}
 .trust-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;padding:6px 12px;border-radius:20px;margin-bottom:10px;}
@@ -411,9 +415,9 @@ function topbar() {
     forgot:"Mot de passe oublié", reset:"Nouveau mot de passe",
     home:"", admin_home:"", offres:"Rechercher", offre:"Offre", publier:"Publier une offre", modifier_offre:"Modifier l'offre",
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
-    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", profil:"Mon profil", notifications:"Notifications",
+    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", admin_fin_bail:"Litiges de fin de bail", profil:"Mon profil", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
-    carnet_loyer:"Carnet de loyer", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
+    carnet_loyer:"Carnet de loyer", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
     quartier:"Avis du quartier", quartier_avis_form:"Noter le quartier", budget:"Simulateur de budget",
   };
@@ -468,6 +472,7 @@ function screen() {
     case "mine": return isBailleurLike(state.user.role) ? sMesOffres() : sMesCandidatures();
     case "mes_contrats": return sMesContrats();
     case "carnet_loyer": return sCarnetLoyer(state.params.id);
+    case "fin_bail": return sFinBail(state.params.id);
     case "avis_form": return sAvisForm(state.params.id);
     case "messages": return sThreadsList();
     case "thread": return sThread(state.params.offre_id, state.params.locataire_id);
@@ -487,6 +492,7 @@ function screen() {
     case "admin_stats": return sAdminStats();
     case "admin_rappels": return sAdminRappels();
     case "admin_litiges": return sAdminLitiges();
+    case "admin_fin_bail": return sAdminFinBail();
     case "profil": return sProfil();
     case "notifications": return sNotifications();
     default: return `<div class="center muted">Page introuvable</div>`;
@@ -820,7 +826,8 @@ function sAdminHome() {
   <div class="card" onclick="go('admin_signalements')" style="cursor:pointer;"><div class="card-tt">${icone("drapeau", 16)} Signalements</div><div class="card-sb">Annonces signalées par les locataires</div></div>
   <div class="card" onclick="go('admin_stats')" style="cursor:pointer;"><div class="card-tt">${icone("graphique", 16)} Tableau de bord</div><div class="card-sb">Entonnoir d'adoption V0</div></div>
   <div class="card" onclick="go('admin_rappels')" style="cursor:pointer;"><div class="card-tt">${icone("horloge", 16)} Rappels automatiques</div><div class="card-sb">Fins de bail et loyers en retard — simuler ou envoyer</div></div>
-  <div class="card" onclick="go('admin_litiges')" style="cursor:pointer;"><div class="card-tt">${icone("balance", 16)} Litiges de paiement</div><div class="card-sb">Mois de loyer contestés entre bailleur et locataire</div></div>`;
+  <div class="card" onclick="go('admin_litiges')" style="cursor:pointer;"><div class="card-tt">${icone("balance", 16)} Litiges de paiement</div><div class="card-sb">Mois de loyer contestés entre bailleur et locataire</div></div>
+  <div class="card" onclick="go('admin_fin_bail')" style="cursor:pointer;"><div class="card-tt">${icone("calendrier", 16)} Litiges de fin de bail</div><div class="card-sb">États des lieux et garanties contestés</div></div>`;
 }
 
 /* ── Offres (recherche publique) ── */
@@ -1652,8 +1659,8 @@ async function loadMesContrats() {
   try {
     const r = await api("/contrats");
     if (!r.contrats.length) { box.innerHTML = `<div class="center muted">Aucun contrat pour l'instant.</div>`; return; }
-    const labels = { brouillon: "En préparation", en_confirmation: "Confirmation requise", en_signature: "Signature en cours", signe: "Signé", annule: "Annulé" };
-    const badgeClass = { signe: "bdg-gr", annule: "bdg-rd" };
+    const labels = { brouillon: "En préparation", en_confirmation: "Confirmation requise", en_signature: "Signature en cours", signe: "Signé", annule: "Annulé", preavis: "Congé donné", termine: "Bail clos" };
+    const badgeClass = { signe: "bdg-gr", annule: "bdg-rd", preavis: "bdg-or", termine: "bdg-nt" };
     box.innerHTML = r.contrats.map(c => `
       <div class="card" onclick="go('contrat',{id:${c.id}})" style="cursor:pointer;">
         <div class="row"><span class="card-tt">${esc(c.titre)}</span><span class="bdg ${badgeClass[c.statut] || 'bdg-or'}">${labels[c.statut] || c.statut}</span></div>
@@ -1661,13 +1668,306 @@ async function loadMesContrats() {
         ${c.reference_signature ? `<div class="card-sb" style="margin-top:4px;">Réf. ${esc(c.reference_signature)}</div>` : ""}
         ${c.jours_restants !== null && c.jours_restants !== undefined && c.jours_restants <= 30 && c.jours_restants >= 0 ? `
           <div class="card-sb" style="margin-top:8px;color:#9C4A2E;font-weight:700;">⏰ Ce bail se termine dans ${c.jours_restants} jour${c.jours_restants > 1 ? "s" : ""} (${c.date_fin})</div>` : ""}
-        ${c.statut === "signe" ? `
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('carnet_loyer',{id:${c.id}})">📒 Carnet de loyer</button>
-            ${state.user.role === "locataire" ? `<button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('avis_form',{id:${c.id}})">⭐ Avis</button>` : ""}
+        ${["signe", "preavis", "termine"].includes(c.statut) ? `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('carnet_loyer',{id:${c.id}})">${icone("contrat", 14)} Carnet de loyer</button>
+            ${c.statut !== "termine" ? `<button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('fin_bail',{id:${c.id}})">${icone("calendrier", 14)} Fin de bail</button>` : ""}
+            ${state.user.role === "locataire" ? `<button class="btn btn-o btn-sm" onclick="event.stopPropagation();go('avis_form',{id:${c.id}})">${icone("etoile", 14)} Avis</button>` : ""}
           </div>` : ""}
       </div>`).join("");
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+/* ── Fin de bail ─────────────────────────────────────────────────────────
+   Quatre étapes, dans l'ordre où elles doivent se faire : le congé, l'état
+   des lieux de sortie, la restitution de la garantie, la clôture. Chaque
+   étape dit qui doit agir, pour qu'aucune des deux parties n'attende l'autre
+   sans le savoir. */
+function sFinBail(contratId) {
+  setTimeout(() => loadFinBail(contratId), 0);
+  return `<div id="finBox"><div class="center muted">Chargement…</div></div>`;
+}
+
+/* Miroir de la règle du serveur : dès qu'un constat de sortie est accepté ou
+   que la garantie est engagée, le congé est irrévocable. Proposer le bouton
+   quand même ne ferait qu'amener l'utilisateur sur une erreur. */
+function sortieEngagee(r) {
+  const sortie = r.etats_lieux.sortie;
+  return (sortie && sortie.statut === "accepte") || (r.garantie && r.garantie.statut !== "due");
+}
+
+const ETAT_LABEL = { en_attente: "À valider", accepte: "Accepté", conteste: "Contesté" };
+const ETAT_CLASS = { en_attente: "bdg-or", accepte: "bdg-gr", conteste: "bdg-rd" };
+
+async function loadFinBail(contratId) {
+  const box = document.getElementById("finBox");
+  try {
+    const r = await api(`/bail/${contratId}/fin`);
+    state.cache.finBail = r;
+    const bailleur = r.je_suis_bailleur;
+    const clos = r.statut === "termine";
+    const enPreavis = r.statut === "preavis";
+
+    // ── Congé ──
+    let congeHtml;
+    if (clos) {
+      congeHtml = `<div class="card-sb">Bail clos${r.preavis ? ` — fin au ${dateFr(r.preavis.fin_effective)}` : ""}.</div>`;
+    } else if (r.preavis) {
+      congeHtml = `
+        <div class="st"><div class="st-k">Fin du bail</div><div class="st-v">${dateFr(r.preavis.fin_effective)}</div></div>
+        <div class="st"><div class="st-k">À l'initiative de</div><div class="st-v">${r.preavis.donne_par_moi ? "vous" : "l'autre partie"}</div></div>
+        ${r.preavis.motif ? `<div class="st-col"><div class="st-k">Motif</div><div class="st-v">${esc(r.preavis.motif)}</div></div>` : ""}
+        ${r.preavis.donne_par_moi
+          ? sortieEngagee(r)
+            ? `<div class="card-sb" style="margin-top:8px;">La sortie est engagée : le congé ne peut plus être annulé.</div>`
+            : `<button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="doAnnulerPreavis(${contratId})">Annuler le congé</button>`
+          : ""}`;
+    } else {
+      congeHtml = `
+        <div class="card-sb">Ni vous ni l'autre partie n'avez donné congé. Le bail se poursuit.</div>
+        <div class="fg" style="margin-top:10px;"><label class="fl">Motif (facultatif)</label>
+          <input class="fi" id="fbMotif" placeholder="Ex. : reprise du bien, déménagement…"></div>
+        <div class="fg"><label class="fl">Préavis en jours</label>
+          <input class="fi" id="fbJours" type="number" value="30" min="1" max="365">
+          <div class="fhelp">Vérifiez la durée prévue à votre contrat.</div></div>
+        <button class="btn btn-g btn-sm" onclick="doPreavis(${contratId})">Donner congé</button>`;
+    }
+
+    // ── États des lieux ──
+    const blocEtat = (type) => {
+      const e = r.etats_lieux[type];
+      const lbl = type === "entree" ? "d'entrée" : "de sortie";
+      if (!e) {
+        return `<div class="card">
+          <div class="row"><span class="card-tt">État des lieux ${lbl}</span><span class="bdg bdg-nt">Absent</span></div>
+          <div class="card-sb">Aucun constat déposé.</div>
+          ${clos ? "" : `<button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="ouvrirConstat('${type}')">Déposer un constat</button>
+          <div id="constat-${type}" style="display:none;margin-top:10px;">${formulaireConstat(contratId, type)}</div>`}
+        </div>`;
+      }
+      const aMoi = e.depose_par_moi;
+      return `<div class="card">
+        <div class="row"><span class="card-tt">État des lieux ${lbl}</span><span class="bdg ${ETAT_CLASS[e.statut]}">${ETAT_LABEL[e.statut]}</span></div>
+        ${e.observations ? `<div class="card-sb" style="margin-top:6px;">${esc(e.observations)}</div>` : ""}
+        ${(e.photos || []).length ? `<div class="photo-preview">${e.photos.map(u => `<img src="${esc(u)}" class="mini-photo" onclick="window.open('${esc(u)}','_blank')">`).join("")}</div>` : ""}
+        ${e.motif_contestation ? `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">Contesté : ${esc(e.motif_contestation)}</div>` : ""}
+        <div class="card-sb" style="margin-top:6px;">Déposé par ${aMoi ? "vous" : "l'autre partie"}.</div>
+        ${!clos && e.statut === "en_attente" && !aMoi ? `
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-g btn-sm" onclick="doValiderConstat(${contratId},'${type}',true)">Accepter</button>
+            <button class="btn btn-o btn-sm" onclick="ouvrirContestConstat('${type}')">Contester</button>
+          </div>
+          <div id="contestc-${type}" style="display:none;margin-top:10px;">
+            <div class="fg"><label class="fl">Motif de la contestation</label><textarea class="fi" id="motifc-${type}" rows="2" placeholder="Ce qui ne correspond pas au constat…"></textarea></div>
+            <button class="btn btn-g btn-sm" onclick="doValiderConstat(${contratId},'${type}',false)">Envoyer</button>
+          </div>` : ""}
+        ${!clos && e.statut === "en_attente" && aMoi ? `<div class="card-sb" style="margin-top:6px;">En attente de la validation de l'autre partie.</div>` : ""}
+        ${!clos && e.statut === "conteste" && aMoi ? `
+          <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="ouvrirConstat('${type}')">Déposer un constat corrigé</button>
+          <div id="constat-${type}" style="display:none;margin-top:10px;">${formulaireConstat(contratId, type)}</div>` : ""}
+      </div>`;
+    };
+
+    // ── Garantie ──
+    const g = r.garantie;
+    let garantieHtml = "";
+    if (!r.garantie_prevue) {
+      garantieHtml = `<div class="card"><div class="card-tt">Garantie</div>
+        <div class="card-sb">Aucune garantie n'était prévue à ce bail.</div></div>`;
+    } else if (g.statut === "due") {
+      garantieHtml = `<div class="card">
+        <div class="row"><span class="card-tt">Garantie</span><span class="bdg bdg-or">À restituer</span></div>
+        <div class="st"><div class="st-k">Montant versé</div><div class="st-v">${g.montant_initial} USD</div></div>
+        ${bailleur && !clos ? `
+          <div class="fg" style="margin-top:10px;"><label class="fl">Montant restitué (USD)</label>
+            <input class="fi" id="fbRest" type="number" value="${g.montant_initial}" min="0" max="${g.montant_initial}"></div>
+          <div class="fg"><label class="fl">Motif de la retenue</label>
+            <textarea class="fi" id="fbRetenue" rows="2" placeholder="Obligatoire si vous retenez une partie de la garantie…"></textarea></div>
+          <button class="btn btn-g btn-sm" onclick="doGarantie(${contratId})">Proposer la restitution</button>`
+        : `<div class="card-sb" style="margin-top:6px;">En attente de la proposition du bailleur.</div>`}
+      </div>`;
+    } else {
+      const retenu = Number(g.montant_initial) - Number(g.montant_restitue);
+      garantieHtml = `<div class="card">
+        <div class="row"><span class="card-tt">Garantie</span>
+          <span class="bdg ${g.statut === "acceptee" ? "bdg-gr" : g.statut === "contestee" ? "bdg-rd" : "bdg-or"}">${
+            g.statut === "acceptee" ? "Soldée" : g.statut === "contestee" ? "Contestée" : "Proposée"}</span></div>
+        <div class="st"><div class="st-k">Versée</div><div class="st-v">${g.montant_initial} USD</div></div>
+        <div class="st"><div class="st-k">Restituée</div><div class="st-v">${g.montant_restitue} USD</div></div>
+        ${retenu > 0 ? `<div class="st"><div class="st-k">Retenue</div><div class="st-v" style="color:#9C4A2E;">${retenu} USD</div></div>` : ""}
+        ${g.motif_retenue ? `<div class="card-sb" style="margin-top:6px;">Motif : ${esc(g.motif_retenue)}</div>` : ""}
+        ${g.motif_contestation ? `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">Contesté : ${esc(g.motif_contestation)}</div>` : ""}
+        ${!clos && !bailleur && g.statut === "proposee" ? `
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-g btn-sm" onclick="doValiderGarantie(${contratId},true)">Accepter</button>
+            <button class="btn btn-o btn-sm" onclick="ouvrirContestGarantie()">Contester</button>
+          </div>
+          <div id="contestg" style="display:none;margin-top:10px;">
+            <div class="fg"><label class="fl">Motif de la contestation</label><textarea class="fi" id="motifg" rows="2" placeholder="Pourquoi la retenue vous semble injustifiée…"></textarea></div>
+            <button class="btn btn-g btn-sm" onclick="doValiderGarantie(${contratId},false)">Envoyer</button>
+          </div>` : ""}
+        ${!clos && bailleur && g.statut !== "acceptee" ? `
+          <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="reproposerGarantie(${contratId}, ${g.montant_initial})">Revoir ma proposition</button>` : ""}
+      </div>`;
+    }
+
+    // ── Clôture ──
+    const sortieOk = r.etats_lieux.sortie && r.etats_lieux.sortie.statut === "accepte";
+    const pret = enPreavis && sortieOk && (!r.garantie_prevue || g.statut === "acceptee");
+
+    box.innerHTML = `
+      <div class="h1" style="font-size:17px;">Fin de bail</div>
+      <div class="sub">${clos ? "Ce bail est clos." : enPreavis ? "Un congé a été donné. Reste à faire les comptes." : "Le bail est en cours."}</div>
+
+      <div class="card">
+        <div class="row"><span class="card-tt">${icone("calendrier", 15)} Congé</span>
+          <span class="bdg ${clos ? "bdg-nt" : r.preavis ? "bdg-or" : "bdg-nt"}">${clos ? "Clos" : r.preavis ? "Donné" : "Non donné"}</span></div>
+        ${congeHtml}
+      </div>
+
+      ${blocEtat("entree")}
+      ${blocEtat("sortie")}
+      ${garantieHtml}
+
+      ${!clos ? `<div class="card" style="${pret ? "border-color:#BFD9C9;background:var(--GRD);" : ""}">
+        <div class="card-tt">${icone("balance", 15)} Clôture</div>
+        ${pret
+          ? `<div class="card-sb">Les comptes sont faits. Vous pouvez clore ce bail — le bien redeviendra disponible à la location.</div>
+             <button class="btn btn-g btn-sm" style="margin-top:10px;" onclick="doCloturer(${contratId})">Clore le bail</button>`
+          : `<div class="card-sb">Il reste à faire :</div>
+             <ul style="margin:8px 0 0;padding-left:18px;font-size:11.5px;color:var(--TX2);line-height:1.7;">
+               ${!enPreavis ? "<li>donner congé</li>" : ""}
+               ${!sortieOk ? "<li>un état des lieux de sortie accepté par les deux parties</li>" : ""}
+               ${r.garantie_prevue && g.statut !== "acceptee" ? "<li>la restitution de la garantie acceptée par le locataire</li>" : ""}
+             </ul>`}
+      </div>` : ""}`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+function formulaireConstat(contratId, type) {
+  return `
+    <div class="fg"><label class="fl">Observations</label>
+      <textarea class="fi" id="obs-${type}" rows="3" placeholder="État des murs, sols, sanitaires, équipements…"></textarea></div>
+    <div class="fg"><label class="fl">Photos (jusqu'à 12)</label>
+      <input class="fi" id="ph-${type}" type="file" accept="image/*" multiple>
+      <div class="fhelp">Elles font la preuve en cas de désaccord.</div></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-g btn-sm" id="btnC-${type}" onclick="doConstat(${contratId},'${type}')">Déposer</button>
+      <button class="btn btn-o btn-sm" onclick="fermerConstat('${type}')">Annuler</button>
+    </div>`;
+}
+
+function ouvrirConstat(type) {
+  const e = document.getElementById(`constat-${type}`);
+  if (!e) return;
+  e.style.display = "block";
+  // Le bouton d'ouverture n'a plus de sens une fois le formulaire déplié, et
+  // deux libellés « Déposer » à l'écran prêtent à confusion.
+  if (e.previousElementSibling && e.previousElementSibling.tagName === "BUTTON") {
+    e.previousElementSibling.style.display = "none";
+  }
+}
+function fermerConstat(type) {
+  const e = document.getElementById(`constat-${type}`);
+  if (!e) return;
+  e.style.display = "none";
+  if (e.previousElementSibling && e.previousElementSibling.tagName === "BUTTON") {
+    e.previousElementSibling.style.display = "";
+  }
+}
+
+function ouvrirContestConstat(type) { const e = document.getElementById(`contestc-${type}`); if (e) e.style.display = "block"; }
+function ouvrirContestGarantie() { const e = document.getElementById("contestg"); if (e) e.style.display = "block"; }
+
+async function doPreavis(contratId) {
+  const motif = val("fbMotif");
+  const jours = Number(val("fbJours")) || 30;
+  if (!window.confirm(`Donner congé avec un préavis de ${jours} jours ?\\n\\nL'autre partie en sera informée par SMS.`)) return;
+  try {
+    const r = await api(`/bail/${contratId}/preavis`, { method: "POST", body: JSON.stringify({ motif, preavis_jours: jours }) });
+    toast(`Congé enregistré — fin au ${dateFr(r.fin_effective)}.`, "✅");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doAnnulerPreavis(contratId) {
+  if (!window.confirm("Annuler le congé ? Le bail se poursuivra normalement.")) return;
+  try {
+    await api(`/bail/${contratId}/preavis/annuler`, { method: "POST" });
+    toast("Congé annulé.", "✅");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doConstat(contratId, type) {
+  const observations = val(`obs-${type}`);
+  const input = document.getElementById(`ph-${type}`);
+  const fichiers = input && input.files ? Array.from(input.files).slice(0, 12) : [];
+  setBusy(`btnC-${type}`, true);
+  try {
+    let photos = [];
+    if (fichiers.length) {
+      toast(`Envoi de ${fichiers.length} photo(s)…`, "📤");
+      photos = await uploadPhotosToCloudinary(fichiers);
+    }
+    await api(`/bail/${contratId}/etat-lieux`, { method: "POST", body: JSON.stringify({ type, observations, photos }) });
+    toast("Constat déposé. L'autre partie doit le valider.", "📩");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy(`btnC-${type}`, false); }
+}
+
+async function doValiderConstat(contratId, type, accepte) {
+  const motif = accepte ? "" : val(`motifc-${type}`);
+  if (!accepte && motif.length < 5) return toast("Expliquez brièvement votre contestation.", "⚠️");
+  try {
+    await api(`/bail/${contratId}/etat-lieux/${type}/valider`, { method: "POST", body: JSON.stringify({ accepte, motif }) });
+    toast(accepte ? "Constat accepté." : "Contestation enregistrée.", accepte ? "✅" : "📩");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doGarantie(contratId) {
+  const montant_restitue = Number(val("fbRest"));
+  const motif_retenue = val("fbRetenue");
+  try {
+    await api(`/bail/${contratId}/garantie`, { method: "POST", body: JSON.stringify({ montant_restitue, motif_retenue }) });
+    toast("Proposition envoyée au locataire.", "📩");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+function reproposerGarantie(contratId, initial) {
+  const v = window.prompt(`Montant à restituer, sur ${initial} USD :`);
+  if (v === null) return;
+  const montant = Number(v);
+  if (!Number.isFinite(montant) || montant < 0 || montant > initial) return toast("Montant invalide.", "⚠️");
+  let motif = "";
+  if (montant < initial) {
+    motif = window.prompt("Motif de la retenue :") || "";
+    if (motif.trim().length < 5) return toast("Une retenue doit être motivée.", "⚠️");
+  }
+  api(`/bail/${contratId}/garantie`, { method: "POST", body: JSON.stringify({ montant_restitue: montant, motif_retenue: motif }) })
+    .then(() => { toast("Proposition mise à jour.", "📩"); loadFinBail(contratId); })
+    .catch((e) => toast(e.message, "⚠️"));
+}
+
+async function doValiderGarantie(contratId, accepte) {
+  const motif = accepte ? "" : val("motifg");
+  if (!accepte && motif.length < 5) return toast("Expliquez brièvement votre contestation.", "⚠️");
+  try {
+    await api(`/bail/${contratId}/garantie/valider`, { method: "POST", body: JSON.stringify({ accepte, motif }) });
+    toast(accepte ? "Restitution acceptée." : "Contestation enregistrée.", accepte ? "✅" : "📩");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doCloturer(contratId) {
+  if (!window.confirm("Clore définitivement ce bail ?\\n\\nLe bien redeviendra disponible à la location. Cette action ne s'annule pas.")) return;
+  try {
+    await api(`/bail/${contratId}/cloturer`, { method: "POST" });
+    toast("Bail clos.", "✅");
+    loadFinBail(contratId);
+  } catch (e) { toast(e.message, "⚠️"); }
 }
 
 /* ── Carnet numérique de loyer (locataire ou bailleur, contrat signé) ── */
@@ -2156,6 +2456,57 @@ async function loadAdminLitiges() {
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
 
+/* ── Litiges de fin de bail (admin) ──
+   Deux natures de désaccord, séparées parce qu'elles ne se règlent pas de la
+   même façon : un constat contesté se rejoue sur place, une retenue contestée
+   se discute sur des chiffres. */
+function sAdminFinBail() {
+  setTimeout(loadAdminFinBail, 0);
+  return `<div id="finLitBox"><div class="center muted">Chargement…</div></div>`;
+}
+
+async function loadAdminFinBail() {
+  const box = document.getElementById("finLitBox");
+  const contact = (l) => `
+    <div class="st"><div class="st-k">Bailleur</div><div class="st-v">${esc(l.bailleur_nom || "—")}<br><span class="muted" style="font-weight:400;">${esc(l.bailleur_tel || "")}</span></div></div>
+    <div class="st"><div class="st-k">Locataire</div><div class="st-v">${esc(l.locataire_nom || "—")}<br><span class="muted" style="font-weight:400;">${esc(l.locataire_tel || "")}</span></div></div>`;
+  try {
+    const r = await api("/bail/admin/litiges");
+    if (!r.total) {
+      box.innerHTML = `<div class="center muted" style="padding-top:20px;">Aucun désaccord de fin de bail.</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div class="h1" style="font-size:16px;">${r.total} désaccord${r.total > 1 ? "s" : ""} en cours</div>
+      <div class="sub">IBS consigne le désaccord et les pièces. Le règlement se fait entre les parties.</div>
+
+      ${r.etats_lieux.length ? `<div class="h1" style="font-size:13px;margin-top:14px;">États des lieux contestés</div>` : ""}
+      ${r.etats_lieux.map(l => `
+        <div class="card">
+          <div class="row"><span class="card-tt">${esc(l.titre)} — ${esc(l.commune)}</span>
+            <span class="bdg bdg-rd">${l.type === "entree" ? "Entrée" : "Sortie"}</span></div>
+          <div class="card-sb">Contesté le ${l.valide_at ? new Date(l.valide_at).toLocaleDateString("fr-FR") : "—"} · contrat #${l.contrat_id}</div>
+          ${contact(l)}
+          ${l.observations ? `<div class="st-col"><div class="st-k">Constat</div><div class="st-v">${esc(l.observations)}</div></div>` : ""}
+          <div class="st-col"><div class="st-k">Motif de la contestation</div><div class="st-v">${esc(l.motif_contestation)}</div></div>
+          ${(l.photos || []).length ? `<div class="card-sb" style="margin-top:6px;">${l.photos.length} photo(s) au constat :</div>
+            <div class="photo-preview">${l.photos.map(u => `<img src="${esc(u)}" class="mini-photo" onclick="window.open('${esc(u)}','_blank')">`).join("")}</div>` : ""}
+        </div>`).join("")}
+
+      ${r.garanties.length ? `<div class="h1" style="font-size:13px;margin-top:14px;">Garanties contestées</div>` : ""}
+      ${r.garanties.map(l => `
+        <div class="card">
+          <div class="row"><span class="card-tt">${esc(l.titre)} — ${esc(l.commune)}</span>
+            <span class="bdg bdg-rd">${(Number(l.montant_initial) - Number(l.montant_restitue)).toFixed(0)} USD retenus</span></div>
+          <div class="card-sb">Contesté le ${l.valide_at ? new Date(l.valide_at).toLocaleDateString("fr-FR") : "—"} · contrat #${l.contrat_id}</div>
+          ${contact(l)}
+          <div class="st"><div class="st-k">Versée / restituée</div><div class="st-v">${l.montant_initial} / ${l.montant_restitue} USD</div></div>
+          ${l.motif_retenue ? `<div class="st-col"><div class="st-k">Motif de la retenue</div><div class="st-v">${esc(l.motif_retenue)}</div></div>` : ""}
+          <div class="st-col"><div class="st-k">Contestation</div><div class="st-v">${esc(l.motif_contestation)}</div></div>
+        </div>`).join("")}`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
 function sAdminRappels() {
   return `
   <div class="h1">Rappels automatiques</div>
@@ -2425,6 +2776,13 @@ function esc(v) {
 }
 
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
+/* Les colonnes DATE remontent de PostgreSQL en ISO complet : sans ça, une fin
+   de bail s'affiche « 2026-11-12T00:00:00.000Z » à l'écran d'un locataire. */
+function dateFr(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  return isNaN(d) ? String(v) : d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+}
 function setBusy(id, busy) {
   const el = document.getElementById(id);
   if (!el) return;
