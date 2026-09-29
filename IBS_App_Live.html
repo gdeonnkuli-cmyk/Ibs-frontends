@@ -187,6 +187,8 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .cover-count{position:absolute;right:8px;bottom:8px;background:rgba(13,27,62,.82);color:#fff;font-size:10.5px;font-weight:700;
   padding:3px 8px;border-radius:20px;backdrop-filter:blur(2px);}
 .photo-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.jauge{height:7px;border-radius:5px;background:var(--IVD);overflow:hidden;margin-top:8px;}
+.jauge-b{height:100%;background:linear-gradient(90deg,var(--G),var(--G2));transition:width .3s;}
 .photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--LN);}
 .mini-photo{cursor:zoom-in;}
 .photo-thumb-wrap{position:relative;}
@@ -553,7 +555,7 @@ async function traiterRetourPaiement() {
 /* ============================================================ */
 function render() {
   const app = document.getElementById("app");
-  const showNav = state.user && ["home","admin_home","offres","mine","demandes","mes_contrats","visites","admin_cni","admin_biens","admin_stats","profil","notifications","abonnements","classement","messages","alertes","favoris","admin_signalements","mes_documents","budget"].includes(state.page);
+  const showNav = state.user && ["home","admin_home","offres","mine","demandes","mes_contrats","visites","dossier","admin_cni","admin_biens","admin_stats","profil","notifications","abonnements","classement","messages","alertes","favoris","admin_signalements","mes_documents","budget"].includes(state.page);
   app.innerHTML = topbar() + `<div class="scr">${screen()}</div>` + (showNav ? navbar() : "");
   // Sur grand écran, la barre latérale est fixe et le contenu décalé d'autant.
   // Les écrans qui n'en ont pas laissaient une colonne vide à gauche : la
@@ -571,7 +573,7 @@ function topbar() {
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
     admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", admin_fin_bail:"Litiges de fin de bail", profil:"Mon profil", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
-    carnet_loyer:"Carnet de loyer", visites:"Visites", encaissement:"Recevoir les loyers", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
+    carnet_loyer:"Carnet de loyer", visites:"Visites", dossier:"Mon dossier", encaissement:"Recevoir les loyers", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
     quartier:"Avis du quartier", quartier_avis_form:"Noter le quartier", budget:"Simulateur de budget",
   };
@@ -629,6 +631,7 @@ function screen() {
     case "mes_contrats": return sMesContrats();
     case "carnet_loyer": return sCarnetLoyer(state.params.id);
     case "visites": return sVisites();
+    case "dossier": return sDossier();
     case "encaissement": return sCompteEncaissement();
     case "fin_bail": return sFinBail(state.params.id);
     case "avis_form": return sAvisForm(state.params.id);
@@ -935,8 +938,8 @@ async function loadHome() {
     ? [["dossier", "Publier une offre", "publier"], ["document", "Candidatures", "demandes"], ["message", "Messages", "messages"],
        ["calendrier", "Visites", "visites"], ["carte", "Recevoir les loyers", "encaissement"],
        ["document", "Mes documents", "mes_documents"], ["etoile", "Classement", "classement"]]
-    : [["recherche", "Chercher un logement", "offres"], ["calendrier", "Mes visites", "visites"],
-       ["coeur", "Mes favoris", "favoris"], ["cloche", "Mes alertes", "alertes"],
+    : [["recherche", "Chercher un logement", "offres"], ["dossier", "Mon dossier", "dossier"],
+       ["calendrier", "Mes visites", "visites"], ["coeur", "Mes favoris", "favoris"],
        ["message", "Messages", "messages"], ["billet", "Simulateur de budget", "budget"]];
 
   box.innerHTML = `
@@ -2605,12 +2608,7 @@ async function loadDemandes() {
       <div class="card">
         <div class="row"><span class="card-tt">${esc(d.locataire_nom)}</span><span class="bdg ${d.statut==='selectionnee'?'bdg-gr':d.statut==='refusee'?'bdg-rd':'bdg-or'}">${d.statut}</span></div>
         <div class="card-sb">Pour : ${esc(d.titre)}</div>
-        ${(d.profession || d.revenu_usd || d.nb_occupants) ? `
-        <div class="spec-row">
-          ${d.profession ? `<span class="spec-chip"><span class="ic">💼</span>${esc(d.profession)}</span>` : ""}
-          ${d.revenu_usd ? `<span class="spec-chip"><span class="ic">💵</span>${d.revenu_usd} $/mois</span>` : ""}
-          ${d.nb_occupants ? `<span class="spec-chip"><span class="ic">👪</span>${d.nb_occupants} occupant${d.nb_occupants > 1 ? "s" : ""}</span>` : ""}
-        </div>` : ""}
+        ${dossierCandidat(d)}
         ${d.message ? `<div class="card-sb" style="margin-top:4px;font-style:italic;">"${esc(d.message)}"</div>` : ""}
         ${d.statut === "en_attente" ? `<button class="btn btn-g btn-sm" style="margin-top:10px;" onclick="doSelectionner(${d.demande_id})">Sélectionner ce candidat</button>` : ""}
         ${d.statut === "selectionnee" ? `<button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="go('mine')">Voir dans Mes offres</button>` : ""}
@@ -2618,6 +2616,204 @@ async function loadDemandes() {
       </div>`).join("");
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
+const CONTRAT_LABEL = {
+  cdi: "CDI", cdd: "CDD", independant: "Indépendant",
+  fonctionnaire: "Fonctionnaire", etudiant: "Étudiant", autre: "Autre",
+};
+const PIECE_LABEL = {
+  attestation_travail: "Attestation de travail", bulletin_paie: "Bulletin de paie",
+  releve_bancaire: "Relevé bancaire", attestation_garant: "Attestation du garant", autre: "Autre pièce",
+};
+
+/* ── Mon dossier (locataire) ──
+   Rempli une fois, il part avec chaque candidature. Le bailleur cesse de
+   choisir sur une phrase. */
+function sDossier() {
+  setTimeout(loadDossier, 0);
+  return `<div id="dosBox"><div class="center muted">Chargement…</div></div>`;
+}
+
+async function loadDossier() {
+  const box = document.getElementById("dosBox");
+  try {
+    const r = await api("/dossier");
+    const d = r.dossier, c = r.completude, h = r.historique;
+    state.cache.dossierPieces = d.pieces || [];
+
+    const opt = (v, l, cur) => `<option value="${v}"${cur === v ? " selected" : ""}>${l}</option>`;
+
+    box.innerHTML = `
+      <div class="h1" style="font-size:17px;">Mon dossier</div>
+      <div class="sub">Rempli une fois, il accompagne chacune de vos candidatures. Un bailleur qui voit un dossier complet répond plus vite.</div>
+
+      <div class="card" style="${c.pourcentage === 100 ? "border-color:#BFD9C9;background:var(--GRD);" : ""}">
+        <div class="row"><span class="card-tt">Complété à ${c.pourcentage} %</span></div>
+        <div class="jauge"><div class="jauge-b" style="width:${c.pourcentage}%;"></div></div>
+        ${c.manquant.length
+          ? `<div class="card-sb" style="margin-top:8px;">Il manque encore : ${c.manquant.join(", ")}.</div>`
+          : `<div class="card-sb" style="margin-top:8px;">Votre dossier est complet.</div>`}
+      </div>
+
+      <div class="card">
+        <div class="card-tt">${icone("balance", 15)} Votre historique sur IBS</div>
+        ${h.nouveau
+          ? `<div class="card-sb">Vous n'avez pas encore de loyer confirmé sur IBS. Dès votre premier mois réglé, cette section deviendra votre meilleur argument — et vous pourrez en télécharger l'attestation.</div>`
+          : `<div class="st"><div class="st-k">Baux conclus</div><div class="st-v">${h.baux}</div></div>
+             <div class="st"><div class="st-k">Mois de loyer réglés</div><div class="st-v">${h.mois_regles}</div></div>
+             <div class="st"><div class="st-k">Total réglé</div><div class="st-v">${h.total_regle_usd} USD</div></div>
+             ${h.depuis ? `<div class="st"><div class="st-k">Locataire depuis</div><div class="st-v">${h.depuis}</div></div>` : ""}
+             ${h.mois_contestes ? `<div class="st"><div class="st-k">Mois contestés</div><div class="st-v" style="color:#9C4A2E;">${h.mois_contestes}</div></div>` : ""}
+             <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="voirAttestation()">${icone("document", 14)} Mon attestation de paiement</button>
+             <div class="fhelp" style="margin-top:6px;">Ce document ne se rédige pas : il sort de votre carnet de loyer, confirmé par vos bailleurs.</div>`}
+      </div>
+
+      <div class="card">
+        <div class="card-tt">Votre situation</div>
+        <div class="fg" style="margin-top:8px;"><label class="fl">Profession</label>
+          <input class="fi" id="doProf" value="${esc(d.profession || "")}" placeholder="Ex. : comptable"></div>
+        <div class="fg"><label class="fl">Employeur</label>
+          <input class="fi" id="doEmp" value="${esc(d.employeur || "")}" placeholder="Ex. : Cabinet Kabila & Associés"></div>
+        <div style="display:flex;gap:10px;">
+          <div class="fg" style="flex:1;"><label class="fl">Revenu mensuel (USD)</label>
+            <input class="fi" id="doRev" type="number" min="0" value="${d.revenu_usd != null ? d.revenu_usd : ""}" placeholder="Ex. : 900"></div>
+          <div class="fg" style="flex:1;"><label class="fl">Occupants</label>
+            <input class="fi" id="doOcc" type="number" min="1" max="30" value="${d.nb_occupants != null ? d.nb_occupants : ""}" placeholder="Ex. : 3"></div>
+        </div>
+        <div class="fg"><label class="fl">Type de contrat</label>
+          <select class="fi" id="doType">
+            <option value="">Non précisé</option>
+            ${(r.types_contrat || []).map((t) => opt(t, CONTRAT_LABEL[t] || t, d.type_contrat)).join("")}
+          </select></div>
+      </div>
+
+      <div class="card">
+        <div class="card-tt">Votre garant</div>
+        <div class="card-sb">Facultatif, mais c'est souvent ce qui emporte la décision.</div>
+        <div class="fg" style="margin-top:8px;"><label class="fl">Nom du garant</label>
+          <input class="fi" id="doGNom" value="${esc(d.garant_nom || "")}"></div>
+        <div style="display:flex;gap:10px;">
+          <div class="fg" style="flex:1;"><label class="fl">Téléphone</label>
+            <input class="fi" id="doGTel" inputmode="tel" value="${esc(d.garant_telephone || "")}" placeholder="+243…"></div>
+          <div class="fg" style="flex:1;"><label class="fl">Lien avec vous</label>
+            <input class="fi" id="doGLien" value="${esc(d.garant_lien || "")}" placeholder="Ex. : frère"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-tt">Pièces justificatives</div>
+        <div class="card-sb">Jusqu'à 8. Elles ne sont visibles que des bailleurs auxquels vous candidatez.</div>
+        <div id="doPieces" style="margin-top:8px;">${rendrePieces()}</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-top:6px;">
+          <div class="fg" style="flex:1;margin-bottom:0;"><label class="fl">Ajouter une pièce</label>
+            <select class="fi" id="doPType">
+              ${(r.types_piece || []).map((t) => `<option value="${t}">${PIECE_LABEL[t] || t}</option>`).join("")}
+            </select></div>
+        </div>
+        <div class="fg" style="margin-top:10px;"><input class="fi" id="doPFile" type="file" accept="image/*,application/pdf"></div>
+        <button class="btn btn-o btn-sm" id="btnPiece" onclick="ajouterPiece()">Joindre cette pièce</button>
+      </div>
+
+      <button class="btn btn-g" id="btnDossier" onclick="doEnregistrerDossier()">Enregistrer mon dossier</button>`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+function rendrePieces() {
+  const l = state.cache.dossierPieces || [];
+  if (!l.length) return `<div class="card-sb">Aucune pièce jointe pour le moment.</div>`;
+  return l.map((p, i) => `
+    <div class="st">
+      <div class="st-k"><span class="lnk" onclick="window.open('${esc(p.url)}','_blank')">${esc(PIECE_LABEL[p.type] || p.type)}</span></div>
+      <div class="st-v"><span class="lnk" style="color:var(--RD);" onclick="retirerPiece(${i})">Retirer</span></div>
+    </div>`).join("");
+}
+
+async function ajouterPiece() {
+  const input = document.getElementById("doPFile");
+  const f = input && input.files && input.files[0];
+  if (!f) return toast("Choisissez un fichier.", "⚠️");
+  const liste = state.cache.dossierPieces || [];
+  if (liste.length >= 8) return toast("Huit pièces au maximum.", "⚠️");
+  setBusy("btnPiece", true);
+  try {
+    const url = await uploadFichier(f, "titres");
+    liste.push({ type: val("doPType") || document.getElementById("doPType").value, url });
+    state.cache.dossierPieces = liste;
+    document.getElementById("doPieces").innerHTML = rendrePieces();
+    input.value = "";
+    toast("Pièce jointe. Enregistrez pour la conserver.", "📎");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnPiece", false); }
+}
+
+function retirerPiece(i) {
+  const l = state.cache.dossierPieces || [];
+  l.splice(i, 1);
+  state.cache.dossierPieces = l;
+  document.getElementById("doPieces").innerHTML = rendrePieces();
+  toast("Pièce retirée. Enregistrez pour confirmer.", "🗑️");
+}
+
+async function doEnregistrerDossier() {
+  setBusy("btnDossier", true);
+  try {
+    const r = await api("/dossier", { method: "PUT", body: JSON.stringify({
+      profession: val("doProf"), employeur: val("doEmp"),
+      revenu_usd: val("doRev") === "" ? null : val("doRev"),
+      nb_occupants: val("doOcc") === "" ? null : val("doOcc"),
+      type_contrat: document.getElementById("doType").value || null,
+      garant_nom: val("doGNom"), garant_telephone: val("doGTel"), garant_lien: val("doGLien"),
+      pieces: state.cache.dossierPieces || [],
+    })});
+    toast(`Dossier enregistré — complété à ${r.completude.pourcentage} %.`, "✅");
+    loadDossier();
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnDossier", false); }
+}
+
+function voirAttestation() {
+  window.open(`${API_BASE}/dossier/attestation?token=${encodeURIComponent(state.token)}`, "_blank");
+}
+
+/* Le dossier tel qu'il a été figé à l'envoi de la candidature. Les anciennes
+   candidatures n'en ont pas : on retombe alors sur les trois champs de profil
+   que le serveur renvoie toujours. */
+function dossierCandidat(d) {
+  // Le repli sur le profil vivant ne vaut que pour les candidatures d'avant le
+  // figeage, qui n'en portent aucun. Retomber champ par champ réintroduirait
+  // exactement ce que le figeage empêche : un candidat dont le bailleur lit une
+  // valeur modifiée après coup.
+  const fige = !!d.dossier;
+  const dos = d.dossier || {};
+  const h = dos.historique;
+  const profession = fige ? dos.profession : d.profession;
+  const revenu = fige ? dos.revenu_usd : d.revenu_usd;
+  const occupants = fige ? dos.nb_occupants : d.nb_occupants;
+
+  const puces = [];
+  if (profession) puces.push(`<span class="spec-chip"><span class="ic">💼</span>${esc(profession)}${dos.employeur ? " — " + esc(dos.employeur) : ""}</span>`);
+  if (revenu) puces.push(`<span class="spec-chip"><span class="ic">💵</span>${revenu} $/mois</span>`);
+  if (dos.type_contrat) puces.push(`<span class="spec-chip"><span class="ic">📄</span>${esc(CONTRAT_LABEL[dos.type_contrat] || dos.type_contrat)}</span>`);
+  if (occupants) puces.push(`<span class="spec-chip"><span class="ic">👪</span>${occupants} occupant${occupants > 1 ? "s" : ""}</span>`);
+
+  // L'historique est la seule ligne que le candidat n'a pas écrite lui-même :
+  // elle mérite d'être distinguée du reste, pas noyée parmi les puces.
+  const histo = !h ? "" : h.nouveau
+    ? `<div class="card-sb" style="margin-top:6px;">Premier bail sur IBS — aucun historique de paiement à ce jour.</div>`
+    : `<div class="card-sb" style="margin-top:6px;color:var(--GR);font-weight:600;">
+         ${icone("balance", 13)} ${h.mois_regles} mois de loyer réglés sur IBS (${h.total_regle_usd} USD)${h.depuis ? `, depuis ${h.depuis}` : ""}
+         ${h.mois_contestes ? ` · ${h.mois_contestes} contesté${h.mois_contestes > 1 ? "s" : ""}` : ""}
+       </div>`;
+
+  const garant = dos.garant_nom
+    ? `<div class="card-sb" style="margin-top:6px;">Garant : ${esc(dos.garant_nom)}${dos.garant_lien ? ` (${esc(dos.garant_lien)})` : ""} · ${esc(dos.garant_telephone || "")}</div>`
+    : "";
+
+  const pieces = (dos.pieces || []).length
+    ? `<div class="card-sb" style="margin-top:6px;">${dos.pieces.length} pièce${dos.pieces.length > 1 ? "s" : ""} jointe${dos.pieces.length > 1 ? "s" : ""} :
+        ${dos.pieces.map((pc, i) => `<span class="lnk" onclick="window.open('${esc(pc.url)}','_blank')">${esc(PIECE_LABEL[pc.type] || pc.type)}</span>${i < dos.pieces.length - 1 ? " · " : ""}`).join("")}</div>`
+    : "";
+
+  return (puces.length ? `<div class="spec-row">${puces.join("")}</div>` : "") + histo + garant + pieces;
+}
+
 async function doSelectionner(demandeId) {
   try {
     const r = await api(`/demandes/${demandeId}/selectionner`, { method: "POST" });
