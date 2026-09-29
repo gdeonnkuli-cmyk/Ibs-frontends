@@ -553,7 +553,7 @@ async function traiterRetourPaiement() {
 /* ============================================================ */
 function render() {
   const app = document.getElementById("app");
-  const showNav = state.user && ["home","admin_home","offres","mine","demandes","mes_contrats","admin_cni","admin_biens","admin_stats","profil","notifications","abonnements","classement","messages","alertes","favoris","admin_signalements","mes_documents","budget"].includes(state.page);
+  const showNav = state.user && ["home","admin_home","offres","mine","demandes","mes_contrats","visites","admin_cni","admin_biens","admin_stats","profil","notifications","abonnements","classement","messages","alertes","favoris","admin_signalements","mes_documents","budget"].includes(state.page);
   app.innerHTML = topbar() + `<div class="scr">${screen()}</div>` + (showNav ? navbar() : "");
   // Sur grand écran, la barre latérale est fixe et le contenu décalé d'autant.
   // Les écrans qui n'en ont pas laissaient une colonne vide à gauche : la
@@ -571,7 +571,7 @@ function topbar() {
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
     admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", admin_fin_bail:"Litiges de fin de bail", profil:"Mon profil", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
-    carnet_loyer:"Carnet de loyer", encaissement:"Recevoir les loyers", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
+    carnet_loyer:"Carnet de loyer", visites:"Visites", encaissement:"Recevoir les loyers", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
     quartier:"Avis du quartier", quartier_avis_form:"Noter le quartier", budget:"Simulateur de budget",
   };
@@ -628,6 +628,7 @@ function screen() {
     case "mine": return isBailleurLike(state.user.role) ? sMesOffres() : sMesCandidatures();
     case "mes_contrats": return sMesContrats();
     case "carnet_loyer": return sCarnetLoyer(state.params.id);
+    case "visites": return sVisites();
     case "encaissement": return sCompteEncaissement();
     case "fin_bail": return sFinBail(state.params.id);
     case "avis_form": return sAvisForm(state.params.id);
@@ -932,9 +933,11 @@ async function loadHome() {
 
   const raccourcis = isBailleurLike(u.role)
     ? [["dossier", "Publier une offre", "publier"], ["document", "Candidatures", "demandes"], ["message", "Messages", "messages"],
-       ["carte", "Recevoir les loyers", "encaissement"], ["document", "Mes documents", "mes_documents"], ["etoile", "Classement", "classement"]]
-    : [["recherche", "Chercher un logement", "offres"], ["coeur", "Mes favoris", "favoris"], ["cloche", "Mes alertes", "alertes"],
-       ["message", "Messages", "messages"], ["billet", "Simulateur de budget", "budget"], ["profil", "Mon profil", "profil"]];
+       ["calendrier", "Visites", "visites"], ["carte", "Recevoir les loyers", "encaissement"],
+       ["document", "Mes documents", "mes_documents"], ["etoile", "Classement", "classement"]]
+    : [["recherche", "Chercher un logement", "offres"], ["calendrier", "Mes visites", "visites"],
+       ["coeur", "Mes favoris", "favoris"], ["cloche", "Mes alertes", "alertes"],
+       ["message", "Messages", "messages"], ["billet", "Simulateur de budget", "budget"]];
 
   box.innerHTML = `
     ${!cniOk ? `<div class="card" style="border-color:#E3B79B;background:#FBF3EE;">
@@ -1451,6 +1454,16 @@ async function loadOffreDetail(id) {
           <button class="btn btn-o" style="flex:1;" onclick="go('thread',{offre_id:${o.offre_id},locataire_id:${state.user.id}})">💬 Message</button>
         </div>` : ""}
       ${o.description ? `<div class="card"><div class="card-sb">${esc(o.description)}</div></div>` : ""}
+      ${canApply ? `
+        <div class="card">
+          <div class="card-tt">${icone("calendrier", 15)} Visiter ce logement</div>
+          <div class="card-sb">On ne loue pas un bien qu'on n'a pas vu. Proposez un créneau : le bailleur accepte, refuse ou en propose un autre.</div>
+          <div class="fg" style="margin-top:10px;"><label class="fl">Date et heure souhaitées</label>
+            <input class="fi" id="visDate" type="datetime-local" min="${new Date(Date.now() + 3600e3).toISOString().slice(0, 16)}"></div>
+          <div class="fg"><label class="fl">Message (facultatif)</label>
+            <input class="fi" id="visMsg" placeholder="Ex. : je suis disponible en fin de journée"></div>
+          <button class="btn btn-o btn-sm" id="btnVisite" onclick="doDemanderVisite(${o.offre_id})">Demander cette visite</button>
+        </div>` : ""}
       ${canApply
         ? `<div class="fg"><label class="fl">Message au bailleur (optionnel)</label><textarea class="fi" id="postMsg" rows="3" placeholder="Précisez votre situation, date souhaitée…"></textarea></div>
            <button class="btn btn-g" id="btnPostuler" onclick="doPostuler(${o.offre_id})">Postuler sur cette offre</button>
@@ -1460,6 +1473,122 @@ async function loadOffreDetail(id) {
     if (canApply) { await ensureAbonnementsCache(); renderAbonnementBtn(o.bailleur_id); }
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
+/* ── Visites ──
+   Un même écran pour les deux rôles : c'est la même négociation vue des deux
+   côtés, et la dédoubler ferait diverger deux fois le même code. Ce qui change,
+   c'est qui est nommé en face et qui peut agir. */
+function sVisites() {
+  setTimeout(loadVisites, 0);
+  return `<div id="visBox"><div class="center muted">Chargement…</div></div>`;
+}
+
+const VISITE_LABEL = { en_attente: "À répondre", acceptee: "Confirmée", refusee: "Refusée", annulee: "Annulée" };
+const VISITE_CLASS = { en_attente: "bdg-or", acceptee: "bdg-gr", refusee: "bdg-rd", annulee: "bdg-nt" };
+
+function dateHeureFr(v) {
+  const d = new Date(v);
+  if (isNaN(d)) return String(v);
+  return d.toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long" })
+       + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+async function loadVisites() {
+  const box = document.getElementById("visBox");
+  const bailleur = isBailleurLike(state.user.role);
+  try {
+    const r = await api(bailleur ? "/visites/recues" : "/visites/mine");
+    const liste = r.visites || [];
+    if (!liste.length) {
+      box.innerHTML = `<div class="center muted" style="padding-top:20px;">${bailleur
+        ? "Aucune demande de visite sur vos biens."
+        : "Aucune visite demandée. Ouvrez une annonce pour proposer un créneau."}</div>`;
+      return;
+    }
+
+    const passee = (v) => new Date(v.date_proposee).getTime() < Date.now();
+    const aRepondre = liste.filter((v) => v.statut === "en_attente"
+      && v.dernier_proposant !== (bailleur ? "bailleur" : "locataire"));
+
+    box.innerHTML = `
+      <div class="h1" style="font-size:17px;">${bailleur ? "Demandes de visite" : "Mes visites"}</div>
+      <div class="sub">${aRepondre.length
+        ? `${aRepondre.length} créneau${aRepondre.length > 1 ? "x" : ""} attend${aRepondre.length > 1 ? "ent" : ""} votre réponse.`
+        : "Rien n'attend votre réponse."}</div>
+      ${liste.map((v) => {
+        // Celui qui vient de proposer attend l'autre : lui remontrer les boutons
+        // l'inviterait à accepter son propre créneau, que le serveur refuse.
+        const monTour = v.statut === "en_attente"
+          && v.dernier_proposant !== (bailleur ? "bailleur" : "locataire");
+        const enFace = bailleur ? v.locataire_nom : v.bailleur_nom;
+        return `
+        <div class="card">
+          <div class="row">
+            <span class="card-tt">${esc(v.titre)}</span>
+            <span class="bdg ${VISITE_CLASS[v.statut] || "bdg-nt"}">${VISITE_LABEL[v.statut] || v.statut}</span>
+          </div>
+          <div class="card-sb">${esc(v.commune || "")}</div>
+          <div class="st"><div class="st-k">Créneau</div><div class="st-v">${dateHeureFr(v.date_proposee)}</div></div>
+          <div class="st"><div class="st-k">${bailleur ? "Visiteur" : "Bailleur"}</div>
+            <div class="st-v">${esc(enFace || "—")}${bailleur && v.locataire_telephone && v.statut === "acceptee"
+              ? `<br><a href="tel:${esc(v.locataire_telephone)}" style="color:var(--N);font-weight:400;">${esc(v.locataire_telephone)}</a>` : ""}</div></div>
+          ${v.message ? `<div class="st-col"><div class="st-k">Message</div><div class="st-v">${esc(v.message)}</div></div>` : ""}
+          ${v.statut === "acceptee" && passee(v) ? `<div class="card-sb" style="margin-top:6px;">Ce rendez-vous est passé.</div>` : ""}
+          ${monTour ? `
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+              <button class="btn btn-g btn-sm" onclick="doVisite(${v.id},'accepter')">Accepter</button>
+              <button class="btn btn-o btn-sm" onclick="doVisite(${v.id},'refuser')">Refuser</button>
+              <button class="btn btn-o btn-sm" onclick="ouvrirCreneau(${v.id})">Proposer un autre créneau</button>
+            </div>
+            <div id="creneau-${v.id}" style="display:none;margin-top:10px;">
+              <div class="fg"><label class="fl">Nouveau créneau</label>
+                <input class="fi" id="cr-${v.id}" type="datetime-local" min="${new Date(Date.now() + 3600e3).toISOString().slice(0, 16)}"></div>
+              <button class="btn btn-g btn-sm" onclick="doVisite(${v.id},'proposer_autre')">Envoyer</button>
+            </div>`
+          : v.statut === "en_attente"
+            ? `<div class="card-sb" style="margin-top:6px;">En attente de la réponse de ${bailleur ? "votre visiteur" : "votre bailleur"}.</div>`
+            : ""}
+        </div>`;
+      }).join("")}`;
+  } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
+}
+
+function ouvrirCreneau(id) {
+  const e = document.getElementById(`creneau-${id}`);
+  if (e) e.style.display = "block";
+}
+
+async function doVisite(id, action) {
+  const corps = { action };
+  if (action === "proposer_autre") {
+    const quand = val(`cr-${id}`);
+    if (!quand) return toast("Choisissez une date et une heure.", "⚠️");
+    if (new Date(quand).getTime() < Date.now()) return toast("Le créneau doit être à venir.", "⚠️");
+    corps.date_proposee = new Date(quand).toISOString();
+  }
+  if (action === "refuser" && !window.confirm("Refuser cette visite ?")) return;
+  try {
+    await api(`/visites/${id}/action`, { method: "POST", body: JSON.stringify(corps) });
+    toast({ accepter: "Visite confirmée.", refuser: "Visite refusée.", proposer_autre: "Nouveau créneau proposé." }[action],
+          action === "accepter" ? "✅" : "📩");
+    loadVisites();
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doDemanderVisite(offreId) {
+  const quand = val("visDate");
+  if (!quand) return toast("Choisissez une date et une heure.", "⚠️");
+  if (new Date(quand).getTime() < Date.now()) return toast("Le créneau doit être à venir.", "⚠️");
+  setBusy("btnVisite", true);
+  try {
+    // L'input datetime-local rend une heure locale sans fuseau : le serveur la
+    // lirait en UTC et décalerait le rendez-vous de l'écart horaire.
+    await api("/visites", { method: "POST", body: JSON.stringify({
+      offre_id: offreId, date_proposee: new Date(quand).toISOString(), message: val("visMsg") }) });
+    toast("Demande envoyée. Le bailleur est prévenu par SMS.", "📅");
+    go("visites");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnVisite", false); }
+}
+
 async function doPostuler(offreId) {
   if (state.user.cni_statut !== "verifie") return toast("Votre identité doit être vérifiée avant de candidater.", "⚠️");
   setBusy("btnPostuler", true);
