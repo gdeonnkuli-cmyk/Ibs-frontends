@@ -219,20 +219,56 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .cmp-table th:first-child{background:var(--IVD);z-index:3;}
 .cmp-table tbody tr:last-child td{border-bottom:none;}
 
+/* Barre de recherche. Au doigt : commune sur toute la largeur, puis budget et
+   type côte à côte — exactement la disposition d'avant. Sur ordinateur, les
+   trois champs tiennent sur une ligne et les deux boutons aussi. */
+.filtres{ display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.filtres .fg-large{ grid-column: 1 / -1; }
+.filtres-actions .btn{ margin-bottom: 10px; }
+.filtres-actions{ margin-bottom: 4px; }
+
+/* Le bloc de marque de la barre latérale n'existe que sur grand écran : au
+   doigt, la barre est en bas et n'a pas la place. Déclaré avant les media
+   queries, sans quoi il l'emporterait sur la règle qui l'affiche. */
+.nav-brand{ display: none; }
+
 /* ============================================================
-   VERSION PC / ÉCRAN LARGE — même app, même API, mise en page adaptée
+   VERSION ORDINATEUR — même application, même API, mise en page adaptée
+   ============================================================
+   Le téléphone reste la référence : tout ce qui suit vit dans des media
+   queries et ne touche jamais le rendu mobile.
+
+   Le principe : la barre latérale est fixée à gauche, et le contenu occupe
+   la place restante en restant centré dans une colonne lisible. Une ligne de
+   texte de mille pixels de large ne se lit pas — la largeur disponible sert à
+   montrer plus de choses côte à côte, pas à étirer les mêmes.
    ============================================================ */
 @media (min-width: 900px) {
   body{ background: var(--IVD); }
+
   #app{
-    max-width: 1180px;
-    margin: 0 auto 0 236px;
+    max-width: none;
+    width: auto;
+    margin: 0;
     padding-bottom: 0;
+    min-height: 100vh;
   }
+  /* La gouttière n'est réservée que si la barre latérale est réellement là :
+     sinon les écrans de détail affichaient une colonne vide à gauche. */
+  #app.avec-nav{ margin-left: var(--nav-w, 216px); }
+
+  /* Colonne de lecture centrée dans l'espace restant. */
+  .scr{
+    padding: 14px 24px 56px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  /* ── Barre latérale ── */
   .nav{
     position: fixed;
     top: 0; left: 0; bottom: 0;
-    width: 216px;
+    width: var(--nav-w, 216px);
     max-width: none;
     margin: 0;
     background: #fff;
@@ -241,46 +277,123 @@ select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 26px 12px;
-    gap: 4px;
+    padding: 18px 12px;
+    gap: 3px;
+    overflow-y: auto;
   }
+  .nav-brand{
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 14px 18px;
+    font-family: var(--fd);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--N);
+  }
+  .nav-brand img{ height: 28px; width: 28px; border-radius: 7px; display: block; }
   .nav-i{
     flex: none;
     display: flex;
     align-items: center;
     gap: 11px;
     text-align: left;
-    padding: 11px 14px;
+    padding: 10px 14px;
     border-radius: 10px;
     font-size: 13.5px;
+    transition: background .12s;
   }
+  .nav-i:hover{ background: var(--IV); }
+
+  /* Le logo est porté par la barre latérale : le répéter dans le bandeau
+     faisait deux fois la même marque à l'écran. */
+  .tb-logo-img{ display: none; }
   .nav-i.on{ background: var(--IVD); }
   .nav-ic{ margin-bottom: 1px; }
-  .tb{ padding: 18px 4px 10px; }
-  .scr{ padding: 8px 4px 48px; max-width: 960px; }
 
-  /* Listes d'offres / candidatures / contrats en grille plutôt qu'empilées */
-  #offresList, #mesOffresBox, #demBox, #mesContratsBox, #abonFeed, #abonList, #classementBox, #threadsBox, #alertesBox, #favorisBox, #sgAdminBox, #docsBox{
+  /* ── Bandeau de titre ──
+     Il reste pleine largeur pour faire en-tête d'application, mais son contenu
+     s'aligne sur la colonne de lecture plutôt que de flotter à l'extrême. */
+  .tb{
+    padding: 16px max(24px, calc((100% - 1080px) / 2)) 14px;
+  }
+
+  /* ── Listes en grille plutôt qu'empilées ── */
+  #offresList, #mesOffresBox, #demBox, #mesContratsBox, #abonFeed, #abonList,
+  #classementBox, #threadsBox, #alertesBox, #favorisBox, #sgAdminBox, #docsBox,
+  #litigesBox, #finLitBox, #notifBox{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 14px;
     align-items: start;
   }
-  #offresList .center, #mesOffresBox .center, #demBox .center,
-  #mesContratsBox .center, #abonFeed .center, #abonList .center, #classementBox .center, #classementBox .sub, #threadsBox .center, #alertesBox .center, #favorisBox .center, #sgAdminBox .center, #docsBox .center{
+  #offresList > .center, #mesOffresBox > .center, #demBox > .center,
+  #mesContratsBox > .center, #abonFeed > .center, #abonList > .center,
+  #classementBox > .center, #classementBox > .sub, #classementBox > .h1,
+  #threadsBox > .center, #alertesBox > .center, #favorisBox > .center,
+  #sgAdminBox > .center, #docsBox > .center,
+  #litigesBox > .center, #litigesBox > .h1, #litigesBox > .sub,
+  #finLitBox > .center, #finLitBox > .h1, #finLitBox > .sub,
+  #notifBox > .center{
     grid-column: 1 / -1;
   }
+  .card{ margin-bottom: 0; }
+  /* Hors grille, les cartes gardent leur espacement vertical. */
+  .scr > .card, #carnetBox > .card, #finBox > .card, #encBox > .card,
+  #offreBox > .card, #profilBox > .card, #budgetBox > .card{ margin-bottom: 12px; }
 
-  /* Formulaires et fiche détail : rester lisibles, pas étirés sur toute la largeur */
-  #offreBox, #threadBox{ max-width: 640px; }
+  /* ── Lecture ──
+     Formulaires, fiches et boutons pleine largeur n'ont aucune raison de
+     s'étirer sur toute la colonne : au-delà d'environ 70 caractères, l'œil
+     perd la ligne. */
+  #offreBox, #threadBox, #carnetBox, #finBox, #encBox, #budgetBox{ max-width: 720px; }
   .fg{ max-width: 460px; }
-}
-@media (min-width: 1300px) {
-  #app{ margin-left: 256px; }
-  .nav{ width: 236px; }
-  #offresList, #mesOffresBox, #demBox, #mesContratsBox, #abonFeed, #abonList, #classementBox, #threadsBox, #alertesBox, #favorisBox, #sgAdminBox, #docsBox{
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  .btn:not(.btn-sm){ max-width: 460px; }
+
+  .filtres{ grid-template-columns: repeat(3, minmax(200px, 320px)); gap: 0 12px; max-width: none; }
+  .filtres .fg{ max-width: none; grid-column: auto; }
+  .filtres-actions{ display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .filtres-actions .btn{ width: auto; max-width: none; padding-left: 22px; padding-right: 22px; margin-bottom: 14px; }
+  .chip-row{ max-width: 460px; }
+  /* Les champs appariés (Chambres / Loyer) vivent dans une rangée flex posée en
+     style en ligne. Sans cap sur la rangée, chacun gardait bien ses 460 px mais
+     le second partait du milieu de l'écran : deux colonnes désalignées avec les
+     champs simples du dessus. :has() est ignoré par les navigateurs qui ne le
+     connaissent pas, auquel cas on retombe sur l'ancien rendu. */
+  .scr div[style*="flex"]:has(> .fg){ max-width: 460px; }
+  .scr div[style*="flex"]:has(> .fg) > .fg{ max-width: none; }
+
+  /* ── Confort de pointeur et de clavier ──
+     Sur ordinateur on survole et on tabule, deux gestes qui n'existent pas au
+     doigt et que rien ne signalait jusqu'ici. */
+  .card.offer-card{ transition: border-color .12s, box-shadow .12s, transform .12s; }
+  .card.offer-card:hover{
+    border-color: var(--G2);
+    box-shadow: 0 6px 18px rgba(13,27,62,.09);
+    transform: translateY(-1px);
   }
+  .btn:not(:disabled):hover{ filter: brightness(.97); }
+  .lnk:hover{ text-decoration: underline; }
+}
+
+@media (min-width: 1280px) {
+  #app{ --nav-w: 236px; }
+  .nav{ width: 236px; }
+  .scr{ max-width: 1180px; }
+  .tb{ padding-left: max(24px, calc((100% - 1180px) / 2)); padding-right: max(24px, calc((100% - 1180px) / 2)); }
+  #offresList, #mesOffresBox, #demBox, #mesContratsBox, #abonFeed, #abonList,
+  #classementBox, #threadsBox, #alertesBox, #favorisBox, #sgAdminBox, #docsBox,
+  #litigesBox, #finLitBox, #notifBox{
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  }
+}
+
+/* Le focus clavier doit se voir partout, pas seulement sur grand écran : un
+   utilisateur au clavier existe aussi sur tablette. Posé hors media query. */
+.btn:focus-visible, .nav-i:focus-visible, .chip:focus-visible,
+.lnk:focus-visible, .card[onclick]:focus-visible{
+  outline: 2px solid var(--G);
+  outline-offset: 2px;
 }
 </style>
 </head>
@@ -442,6 +555,10 @@ function render() {
   const app = document.getElementById("app");
   const showNav = state.user && ["home","admin_home","offres","mine","demandes","mes_contrats","admin_cni","admin_biens","admin_stats","profil","notifications","abonnements","classement","messages","alertes","favoris","admin_signalements","mes_documents","budget"].includes(state.page);
   app.innerHTML = topbar() + `<div class="scr">${screen()}</div>` + (showNav ? navbar() : "");
+  // Sur grand écran, la barre latérale est fixe et le contenu décalé d'autant.
+  // Les écrans qui n'en ont pas laissaient une colonne vide à gauche : la
+  // classe dit au CSS s'il faut réserver la place ou non.
+  app.classList.toggle("avec-nav", !!showNav);
   wire();
   if (typeof renderCompareBar === "function") renderCompareBar();
 }
@@ -477,7 +594,9 @@ function navbar() {
        isBailleurLike(state.user.role) ? ["mine","dossier","Mes offres"] : ["mine","document","Candidatures"],
        ["mes_contrats","contrat","Contrats"],
        ["profil","profil","Profil"]];
-  return `<div class="nav">${items.map(([p,ic,lb]) =>
+  return `<div class="nav">
+    <div class="nav-brand"><img src="${LOGO_B64}" alt="">IBS</div>
+    ${items.map(([p,ic,lb]) =>
     `<div class="nav-i ${state.page===p?'on':''}" onclick="go('${p}')"><span class="nav-ic">${icone(ic, 20)}</span>${lb}</div>`
   ).join("")}</div>`;
 }
@@ -878,10 +997,10 @@ function sOffres() {
     <div></div>
     <span class="lnk" onclick="go('alertes')">🔔 Mes alertes</span>
   </div>
-  <div class="fg"><input class="fi" id="fCommune" placeholder="Commune (ex : Limete)"></div>
-  <div style="display:flex;gap:10px;">
-    <div class="fg" style="flex:1;"><input class="fi" id="fBudget" placeholder="Budget max USD" type="number" value="${budgetPreRempli}"></div>
-    <div class="fg" style="flex:1;"><select class="fi" id="fType"><option value="">Tous types</option><option>studio</option><option>appartement</option><option>maison</option><option>villa</option></select></div>
+  <div class="filtres">
+    <div class="fg fg-large"><input class="fi" id="fCommune" placeholder="Commune (ex : Limete)"></div>
+    <div class="fg"><input class="fi" id="fBudget" placeholder="Budget max USD" type="number" value="${budgetPreRempli}"></div>
+    <div class="fg"><select class="fi" id="fType"><option value="">Tous types</option><option>studio</option><option>appartement</option><option>maison</option><option>villa</option></select></div>
   </div>
   <div class="lnk" style="display:inline-block;margin-bottom:10px;" onclick="document.getElementById('fMore').classList.toggle('open')">⚙️ Filtres avancés</div>
   <div id="fMore" class="f-more">
@@ -901,8 +1020,10 @@ function sOffres() {
     </div>
     ${eqGridHtml([], "fEq")}
   </div>
-  <button class="btn btn-o" onclick="loadOffres()" style="margin-bottom:10px;">Filtrer</button>
-  <button class="btn btn-o" onclick="doCreerAlerte()" style="margin-bottom:14px;">🔔 Créer une alerte avec ces critères</button>
+  <div class="filtres-actions">
+    <button class="btn btn-o" onclick="loadOffres()">Filtrer</button>
+    <button class="btn btn-o" onclick="doCreerAlerte()">🔔 Créer une alerte avec ces critères</button>
+  </div>
   <div id="offresList"><div class="center muted">Chargement…</div></div>`;
 }
 async function doCreerAlerte() {
