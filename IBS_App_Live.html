@@ -571,7 +571,7 @@ function topbar() {
     forgot:"Mot de passe oublié", reset:"Nouveau mot de passe",
     home:"", admin_home:"", offres:"Rechercher", offre:"Offre", publier:"Publier une offre", modifier_offre:"Modifier l'offre",
     mine:"Mes offres", demandes:"Candidatures reçues", contrat:"Contrat", mes_contrats:"Mes contrats",
-    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", admin_fin_bail:"Litiges de fin de bail", profil:"Mon profil", notifications:"Notifications",
+    admin_cni:"Vérification CNI", admin_biens:"Vérification des biens", admin_stats:"Tableau de bord", admin_rappels:"Rappels automatiques", admin_litiges:"Litiges de paiement", admin_fin_bail:"Litiges de fin de bail", profil:"Mon profil", coordonnees:"Mes coordonnées", notifications:"Notifications",
     abonnements:"Mes abonnements", classement:"Classement du mois", messages:"Mes messages", thread:"Conversation",
     carnet_loyer:"Carnet de loyer", visites:"Visites", dossier:"Mon dossier", encaissement:"Recevoir les loyers", fin_bail:"Fin de bail", avis_form:"Laisser un avis", comparateur:"Comparer les offres", alertes:"Mes alertes", favoris:"Mes favoris",
     admin_signalements:"Signalements", signaler_offre:"Signaler cette offre", mes_documents:"Mes documents",
@@ -655,6 +655,7 @@ function screen() {
     case "admin_litiges": return sAdminLitiges();
     case "admin_fin_bail": return sAdminFinBail();
     case "profil": return sProfil();
+    case "coordonnees": return sCoordonnees();
     case "notifications": return sNotifications();
     default: return `<div class="center muted">Page introuvable</div>`;
   }
@@ -2946,16 +2947,56 @@ async function loadAdminCni() {
   const box = document.getElementById("adminCniBox");
   try {
     const r = await api("/auth/admin/cni-pending");
-    if (!r.users.length) { box.innerHTML = `<div class="center muted">Aucune CNI en attente. 🎉</div>`; return; }
-    box.innerHTML = r.users.map(u => `
+    if (!r.users.length) { box.innerHTML = `<div class="center muted">Aucune identité en attente. 🎉</div>`; return; }
+
+    // Les pièces étaient absentes de cet écran : l'identité se validait sans
+    // que personne ne l'ait regardée. C'est pourtant tout l'objet de la file.
+    const piece = (url, libelle) => url
+      ? `<div><div class="fhelp" style="margin-bottom:3px;">${libelle}</div>
+           <img src="${esc(url)}" class="mini-photo" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--LN);"
+                onclick="window.open('${esc(url)}','_blank')"></div>`
+      : `<div><div class="fhelp" style="margin-bottom:3px;">${libelle}</div>
+           <div class="cover-none" style="width:96px;height:96px;border-radius:8px;"><span class="tx">Absent</span></div></div>`;
+
+    box.innerHTML = r.users.map(u => {
+      const ch = u.changement;
+      return `
       <div class="card">
-        <div class="row"><span class="card-tt">${esc(u.nom)}</span><span class="bdg bdg-or">${roleLabel(u.role)}</span></div>
-        <div class="card-sb">${esc(u.telephone)}</div>
+        <div class="row"><span class="card-tt">${esc(u.nom)}</span>
+          <span class="bdg ${ch ? "bdg-or" : "bdg-nt"}">${ch ? "Coordonnées modifiées" : "Première inscription"}</span></div>
+        <div class="card-sb">${roleLabel(u.role)}${u.est_professionnel ? " · professionnel" : ""} · ${esc(u.telephone)}${u.commune ? " · " + esc(u.commune) : ""}</div>
+
+        ${ch ? `<div class="card" style="margin-top:10px;background:#FBF3EE;border-color:#E3B79B;">
+          <div class="card-tt" style="font-size:12px;color:#9C4A2E;">Ce qui a changé</div>
+          ${Object.entries(ch).map(([champ, v]) => `
+            <div class="st"><div class="st-k">${esc(champ)}</div>
+              <div class="st-v" style="font-weight:400;"><span style="text-decoration:line-through;color:var(--TX3);">${esc(v.avant || "—")}</span> → <strong>${esc(v.apres)}</strong></div></div>`).join("")}
+        </div>` : ""}
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+          ${piece(u.cni_recto_url, "Pièce — recto")}
+          ${piece(u.cni_verso_url, "Pièce — verso")}
+          ${piece(u.portrait_url, "Portrait")}
+        </div>
+
+        ${u.est_professionnel || u.role === "intermediaire" ? `
+        <div class="card" style="margin-top:10px;">
+          <div class="card-tt" style="font-size:12px;">Structure</div>
+          <div class="st"><div class="st-k">Nom</div><div class="st-v">${esc(u.nom_agence || "—")}</div></div>
+          <div class="st"><div class="st-k">RCCM / agrément</div><div class="st-v">${esc(u.agrement_ou_rccm || "—")}</div></div>
+          <div class="st"><div class="st-k">Identification nationale</div><div class="st-v">${esc(u.id_national || "—")}</div></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+            ${u.rccm_document_url ? `<span class="lnk" onclick="window.open('${esc(u.rccm_document_url)}','_blank')">Voir le RCCM</span>` : `<span class="muted" style="font-size:11px;">RCCM non fourni</span>`}
+            ${u.id_national_document_url ? `<span class="lnk" onclick="window.open('${esc(u.id_national_document_url)}','_blank')">Voir l'identification nationale</span>` : ""}
+          </div>
+        </div>` : ""}
+
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button class="btn btn-g btn-sm" onclick="reviewCni(${u.id},'verifie')">✓ Valider</button>
           <button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="reviewCni(${u.id},'rejete')">✕ Rejeter</button>
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
 async function reviewCni(id, decision) {
@@ -3216,35 +3257,133 @@ function sProfil() {
     <div class="st"><div class="st-k">Identité</div><div class="st-v">${u.cni_statut === "verifie" ? "✓ Vérifiée" : "⏳ En attente"}</div></div>
   </div>
   ${u.role === "locataire" ? `
-  <div class="card" style="margin-top:14px;">
-    <div class="card-tt" style="margin-bottom:10px;">📋 Dossier locataire</div>
-    <div class="card-sb" style="margin-bottom:14px;">Ces informations accompagnent automatiquement vos candidatures, pour rassurer le bailleur sans avoir à les retaper.</div>
-    <div class="fg"><label class="fl">Profession</label><input class="fi" id="pfProfession" placeholder="ex : Comptable" value="${u.profession || ""}"></div>
-    <div style="display:flex;gap:10px;">
-      <div class="fg" style="flex:1;"><label class="fl">Revenu mensuel (USD)</label><input class="fi" id="pfRevenu" type="number" placeholder="ex : 400" value="${u.revenu_usd || ""}"></div>
-      <div class="fg" style="flex:1;"><label class="fl">Nombre d'occupants</label><input class="fi" id="pfOccupants" type="number" placeholder="ex : 3" value="${u.nb_occupants || ""}"></div>
-    </div>
-    <button class="btn btn-g" onclick="doUpdateProfil()">Enregistrer mon dossier</button>
-  </div>` : ""}
+  <button class="btn btn-o" style="margin-top:14px;" onclick="go('dossier')">${icone("dossier", 14)} Mon dossier de candidature</button>` : ""}
+  ${u.role !== "admin" ? `
+  <button class="btn btn-o" style="margin-top:10px;" onclick="go('coordonnees')">${icone("profil", 14)} Modifier mes coordonnées</button>` : ""}
   <button class="btn btn-o" onclick="logout()" style="color:var(--RD);margin-top:14px;">Se déconnecter</button>`;
 }
-async function doUpdateProfil() {
+/* ── Modifier ses coordonnées ──
+   Changer son nom, son numéro ou sa commune, c'est changer ce sur quoi repose
+   la vérification d'identité. L'écran le dit avant la saisie, et non après le
+   refus du serveur : personne n'aime remplir un formulaire pour apprendre à la
+   fin qu'il fallait sa carte sous la main. */
+function sCoordonnees() {
+  const u = state.user;
+  const pro = u.role === "intermediaire" || u.est_professionnel;
+  return `
+  <div class="card" style="border-color:#E3B79B;background:#FBF3EE;">
+    <div class="card-tt" style="color:#9C4A2E;">${icone("alerte", 15)} Votre identité sera revérifiée</div>
+    <div class="card-sb" style="margin-top:6px;">
+      Modifier ces informations remet votre compte en attente de vérification. Vous ne pourrez plus
+      ${isBailleurLike(u.role) ? "publier d'offre" : "candidater"} tant que l'équipe IBS n'a pas revu vos pièces.
+      Munissez-vous de votre pièce d'identité.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-tt">Vos coordonnées</div>
+    <div class="fg" style="margin-top:8px;"><label class="fl">Nom complet</label>
+      <input class="fi" id="coNom" value="${esc(u.nom || "")}"></div>
+    <div class="fg"><label class="fl">Téléphone</label>
+      <input class="fi" id="coTel" inputmode="tel" value="${esc(u.telephone || "")}">
+      <div class="fhelp">En le changeant, un code de confirmation partira sur le nouveau numéro.</div></div>
+    <div class="fg"><label class="fl">Commune</label>
+      <input class="fi" id="coCommune" value="${esc(u.commune || "")}"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-tt">Votre pièce d'identité</div>
+    <div class="card-sb">Recto et verso, lisibles et entiers.</div>
+    <div class="fg"><label class="fl">Pièce d'identité — recto</label>${champPiece("coRecto")}</div>
+    <div class="fg"><label class="fl">Pièce d'identité — verso</label>${champPiece("coVerso")}</div>
+  </div>
+
+  <div class="card">
+    <div class="card-tt">Votre photo portrait</div>
+    <div class="card-sb">Une photo de votre visage, prise maintenant. Elle sert à confirmer que la pièce est bien la vôtre.</div>
+    <div class="fg" style="margin-top:10px;">${champPiece("coPortrait", "user")}
+      <div class="fhelp">Regardez l'objectif, sans lunettes de soleil ni couvre-chef.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row"><span class="card-tt">Vous louez à titre professionnel ?</span></div>
+    <div class="card-sb">Agence immobilière, société, ou bailleur exerçant comme commerçant.</div>
+    <div class="chk ${pro ? "on" : ""}" id="coPro" onclick="this.classList.toggle('on');basculerPro()" style="margin-top:10px;">
+      <div class="chk-box">✓</div><div class="chk-txt">Oui, je loue à titre professionnel</div>
+    </div>
+    <div id="coProBloc" style="display:${pro ? "block" : "none"};margin-top:12px;">
+      <div class="fg"><label class="fl">Nom de la structure</label>
+        <input class="fi" id="coAgence" value="${esc(u.nom_agence || "")}" placeholder="Ex. : Immo Kinshasa SARL"></div>
+      <div class="fg"><label class="fl">Numéro RCCM ou d'agrément</label>
+        <input class="fi" id="coRccm" value="${esc(u.agrement_ou_rccm || "")}" placeholder="Ex. : CD/KIN/RCCM/22-B-1234"></div>
+      <div class="fg"><label class="fl">Document RCCM ou agrément</label>
+        <input class="fi" id="coRccmDoc" type="file" accept="image/*,application/pdf"></div>
+      <div class="fg"><label class="fl">Identification nationale</label>
+        <input class="fi" id="coIdNat" value="${esc(u.id_national || "")}" placeholder="Ex. : 01-93-N12345M"></div>
+      <div class="fg"><label class="fl">Document d'identification nationale</label>
+        <input class="fi" id="coIdNatDoc" type="file" accept="image/*,application/pdf"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-g" id="btnCoord" onclick="doCoordonnees()">Enregistrer et soumettre à vérification</button>`;
+}
+
+function basculerPro() {
+  const on = document.getElementById("coPro").classList.contains("on");
+  document.getElementById("coProBloc").style.display = on ? "block" : "none";
+}
+
+async function doCoordonnees() {
+  const fichier = (id) => {
+    const e = document.getElementById(id);
+    return e && e.files && e.files[0] ? e.files[0] : null;
+  };
+  const pro = document.getElementById("coPro").classList.contains("on");
+
+  if (!fichier("coRecto") || !fichier("coVerso")) return toast("Le recto et le verso de votre pièce sont requis.", "⚠️");
+  if (!fichier("coPortrait")) return toast("Votre photo portrait est requise.", "⚠️");
+  if (!window.confirm("Enregistrer ces coordonnées ?\\n\\nVotre compte repassera en attente de vérification jusqu'à ce que l'équipe IBS ait revu vos pièces.")) return;
+
+  setBusy("btnCoord", true);
   try {
-    const r = await api("/auth/me", { method: "PATCH", body: JSON.stringify({
-      profession: val("pfProfession"), revenu_usd: val("pfRevenu"), nb_occupants: val("pfOccupants"),
-    })});
+    toast("Envoi de vos pièces…", "📤");
+    const [recto, verso, portrait] = await Promise.all([
+      uploadFichier(fichier("coRecto"), "cni"),
+      uploadFichier(fichier("coVerso"), "cni"),
+      uploadFichier(fichier("coPortrait"), "cni"),
+    ]);
+    const corps = {
+      nom: val("coNom"), telephone: val("coTel"), commune: val("coCommune"),
+      cni_recto_url: recto, cni_verso_url: verso, portrait_url: portrait,
+      est_professionnel: pro,
+    };
+    if (pro) {
+      corps.nom_agence = val("coAgence");
+      corps.agrement_ou_rccm = val("coRccm");
+      corps.id_national = val("coIdNat");
+      if (fichier("coRccmDoc")) corps.rccm_document_url = await uploadFichier(fichier("coRccmDoc"), "titres");
+      if (fichier("coIdNatDoc")) corps.id_national_document_url = await uploadFichier(fichier("coIdNatDoc"), "titres");
+    }
+
+    const r = await api("/auth/me/coordonnees", { method: "PATCH", body: JSON.stringify(corps) });
     state.user = r.user;
-    toast("Dossier mis à jour.", "✅");
-    go("profil");
-  } catch (e) { toast(e.message, "⚠️"); }
+    toast(r.message, r.reverification ? "⏳" : "✅");
+    // Le numéro a changé : le compte n'est plus joignable sur l'ancien, il faut
+    // confirmer le nouveau avant toute autre chose.
+    if (r.telephone_a_confirmer) go("verify", { telephone: r.user.telephone });
+    else go("profil");
+  } catch (e) { toast(e.message, "⚠️"); } finally { setBusy("btnCoord", false); }
 }
 
 /* ── helpers ── */
 /** Zone de prise de photo d'une pièce d'identité. */
-function champPiece(id) {
+function champPiece(id, camera = "environment") {
+  // "user" ouvre la caméra frontale : un portrait ne se prend pas avec
+  // l'objectif arrière, un document ne se photographie pas avec l'avant.
   return `
     <div class="pick" id="pick-${id}">
-      <input type="file" id="${id}" accept="image/*" capture="environment" onchange="apercuPiece('${id}')">
+      <input type="file" id="${id}" accept="image/*" capture="${camera}" onchange="apercuPiece('${id}')">
       <div id="pickbody-${id}">
         <span class="ic">📷</span>
         <div class="tt">Prendre une photo</div>
@@ -3260,6 +3399,9 @@ function apercuPiece(id) {
   const corps = document.getElementById(`pickbody-${id}`);
   const f = input && input.files && input.files[0];
   if (!f) return;
+  // Cette fonction suppose la structure posée par champPiece(). Un appelant qui
+  // ne l'a pas la faisait tomber sur un null — mieux vaut ne rien peindre.
+  if (!zone || !corps) return;
   // L'URL n'est pas révoquée au chargement : le navigateur la libérerait avant
   // d'avoir fini de peindre l'image, et l'aperçu resterait vide. La précédente
   // est libérée au remplacement, ce qui suffit sur un formulaire.
