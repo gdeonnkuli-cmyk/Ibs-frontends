@@ -712,6 +712,9 @@ function sRegister() {
   <div class="fg"><label class="fl">Carte d'identité — verso</label>${champPiece("rCniV")}
     <div class="fhelp">Photo nette et lisible, les quatre coins visibles. Transmise de façon sécurisée à l'équipe IBS pour vérification.</div>
   </div>
+  <div class="fg"><label class="fl">Votre photo portrait</label>${champPiece("rPortrait", "user")}
+    <div class="fhelp">Une photo de votre visage. Elle confirme que la pièce est bien la vôtre — regardez l'objectif, sans lunettes de soleil ni couvre-chef.</div>
+  </div>
   <button class="btn btn-g" id="btnRegister" onclick="doRegister('${role}')">Créer mon compte</button>
   <div class="center" style="padding-top:14px;"><span class="muted">Déjà inscrit ? </span><span class="lnk" onclick="go('login')">Se connecter</span></div>`;
 }
@@ -720,31 +723,35 @@ async function doRegister(role) {
   const nom = val("rNom"), telephone = val("rTel"), password = val("rPass"), commune = val("rCommune");
   const cniR = document.getElementById("rCniR").files[0];
   const cniV = document.getElementById("rCniV").files[0];
+  const portrait = document.getElementById("rPortrait").files[0];
   if (!nom || !telephone || !password) return toast("Remplissez tous les champs obligatoires.", "⚠️");
   if (password.length < MOT_DE_PASSE_MIN) return toast(`Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.`, "⚠️");
   if (!cniR || !cniV) return toast("La CNI (recto et verso) est obligatoire.", "⚠️");
+  if (!portrait) return toast("Votre photo portrait est obligatoire.", "⚠️");
   if (role === "intermediaire" && !val("rAgrement")) return toast("Le numéro d'agrément ou RCCM est obligatoire.", "⚠️");
   setBusy("btnRegister", true);
   try {
     // La CNI part d'abord chez l'hébergeur : sans cela l'équipe IBS n'a aucun
     // document à vérifier, seulement un nom de fichier resté sur le téléphone.
-    let rectoUrl, versoUrl;
+    let rectoUrl, versoUrl, portraitUrl;
     try {
-      toast("Envoi de votre CNI…", "📤");
+      toast("Envoi de vos pièces…", "📤");
       rectoUrl = await uploadFichier(cniR, "cni");
       versoUrl = await uploadFichier(cniV, "cni");
+      portraitUrl = await uploadFichier(portrait, "cni");
     } catch (e) {
       if (!stockageIndisponible(e)) throw e;
-      // Serveur sans stockage : on n'empêche pas l'inscription, mais la pièce
-      // devra être fournie autrement.
+      // Serveur sans stockage : on n'empêche pas l'inscription, mais les pièces
+      // devront être fournies autrement.
       rectoUrl = "local://" + cniR.name;
       versoUrl = "local://" + cniV.name;
-      toast("Stockage non configuré : votre CNI devra être transmise à l'équipe IBS.", "⚠️");
+      portraitUrl = "local://" + portrait.name;
+      toast("Stockage non configuré : vos pièces devront être transmises à l'équipe IBS.", "⚠️");
     }
 
     await api("/auth/register", { method: "POST", body: JSON.stringify({
       role, nom, telephone, password, commune,
-      cni_recto_url: rectoUrl, cni_verso_url: versoUrl,
+      cni_recto_url: rectoUrl, cni_verso_url: versoUrl, portrait_url: portraitUrl,
       agrement_ou_rccm: role === "intermediaire" ? val("rAgrement") : undefined,
       nom_agence: role === "intermediaire" ? val("rAgence") : undefined,
     })});
