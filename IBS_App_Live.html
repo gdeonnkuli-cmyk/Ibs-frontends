@@ -1049,7 +1049,10 @@ async function doCreerAlerte() {
     toast("Alerte créée ! Vous serez notifié des nouvelles offres correspondantes.", "🔔");
   } catch (e) { toast(e.message, "⚠️"); }
 }
-async function loadOffres() {
+// Une nouvelle recherche repart de la première page ; « Voir plus » ajoute à
+// la suite plutôt que de remplacer — sur un téléphone, faire disparaître ce
+// qu'on vient de lire pour afficher la suite est désorientant.
+async function loadOffres(page = 1) {
   const commune = val("fCommune"), budget_max = val("fBudget"), type = val("fType");
   const garantie_max = val("fGarantie"), disponibilite = val("fDispo");
   const charges_incluses = document.getElementById("fCharges") && document.getElementById("fCharges").classList.contains("on");
@@ -1062,17 +1065,21 @@ async function loadOffres() {
   if (disponibilite) qs.set("disponibilite", disponibilite);
   if (charges_incluses) qs.set("charges_incluses", "true");
   if (eq.length) qs.set("equipements", eq.join(","));
+  qs.set("page", String(page));
   const box = document.getElementById("offresList");
-  box.innerHTML = `<div class="center muted">Chargement…</div>`;
+  if (page === 1) box.innerHTML = `<div class="center muted">Chargement…</div>`;
   try {
     const r = await api("/offres?" + qs.toString());
-    if (!r.offres.length) { box.innerHTML = `<div class="center muted">Aucune offre pour ces critères.</div>`; return; }
+    if (page === 1 && !r.offres.length) {
+      box.innerHTML = `<div class="center muted">Aucune offre pour ces critères.</div>`;
+      return;
+    }
     if (state.user.role === "locataire" && !state.cache.favIds) {
       try { const fr = await api("/favoris/ids"); state.cache.favIds = new Set(fr.ids); } catch { state.cache.favIds = new Set(); }
     }
     state.cache.lastOffresById = state.cache.lastOffresById || {};
     r.offres.forEach(o => { state.cache.lastOffresById[o.offre_id] = o; });
-    box.innerHTML = r.offres.map(o => `
+    const cartes = r.offres.map(o => `
       <div class="card offer-card" onclick="go('offre',{id:${o.offre_id}})">
         ${coverOffre(o)}
         <div class="row">
@@ -1101,6 +1108,22 @@ async function loadOffres() {
           <span>Ajouter au comparateur</span>
         </label>
       </div>`).join("");
+
+    // Le bouton de page précédente est retiré avant d'ajouter : sans cela il
+    // resterait coincé entre deux lots de résultats.
+    const ancien = document.getElementById("plusOffres");
+    if (ancien) ancien.remove();
+    if (page === 1) box.innerHTML = cartes;
+    else box.insertAdjacentHTML("beforeend", cartes);
+
+    const vus = (page - 1) * r.taille + r.offres.length;
+    box.insertAdjacentHTML("beforeend", `
+      <div id="plusOffres" class="center" style="padding:14px 0 4px;">
+        <div class="muted" style="font-size:11.5px;margin-bottom:${r.reste ? "8px" : "0"};">
+          ${vus} offre${vus > 1 ? "s" : ""} sur ${r.total}
+        </div>
+        ${r.reste ? `<button class="btn btn-o btn-sm" onclick="loadOffres(${page + 1})">Voir ${Math.min(r.reste, r.taille)} offres de plus</button>` : ""}
+      </div>`);
     renderCompareBar();
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
@@ -1695,28 +1718,80 @@ async function loadMesOffres() {
             <div class="card-tt">${esc(o.titre)}</div>
             <div class="card-sb">📍 ${esc(o.commune)}</div>
           </div>
-          <span class="bdg ${o.statut==='louee'?'bdg-gr':o.statut==='suspendue'?'bdg-rd':'bdg-or'}">${o.statut}</span>
+          <span class="bdg ${OFFRE_CLASS[o.statut] || 'bdg-nt'}">${OFFRE_LABEL[o.statut] || o.statut}</span>
         </div>
         <div class="spec-row">
           <span class="spec-chip"><span class="ic">👁</span>${o.vues} vues</span>
+          ${o.candidatures ? `<span class="spec-chip"><span class="ic">📩</span>${o.candidatures} candidature${o.candidatures > 1 ? "s" : ""}</span>` : ""}
           <span class="spec-chip"><span class="ic">${o.statut_verification === "verifie" ? "✓" : "🕐"}</span>${o.statut_verification === "verifie" ? "Titre validé" : "Titre en attente"}</span>
         </div>
+        ${echeanceOffre(o)}
         <div class="price-block">
           <div class="price-cell accent"><div class="plbl">Loyer / mois</div><div class="pval">${o.loyer_usd} $</div></div>
           <div class="price-cell"><div class="plbl">Garantie</div><div class="pval">${o.garantie_mois ? o.garantie_mois + " mois" : "—"}</div></div>
           <div class="price-cell"><div class="plbl">Charges</div><div class="pval" style="font-size:11px;">${o.charges_incluses ? "Incluses" : "Non incl."}</div></div>
         </div>
-        ${o.statut !== "louee" ? `
+        ${o.statut !== "louee" && o.statut !== "archivee" ? `
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button class="btn btn-o btn-sm" onclick="go('modifier_offre',{id:${o.offre_id}})">✏️ Modifier</button>
-            <button class="btn btn-o btn-sm" style="${o.statut==='active'?'color:var(--RD);':'color:var(--GR);'}" onclick="doToggleStatut(${o.offre_id},'${o.statut==='active'?'suspendue':'active'}')">${o.statut==='active' ? '⏸ Suspendre' : '▶ Réactiver'}</button>
+            ${o.statut === "active"
+              ? `<button class="btn btn-o btn-sm" style="color:var(--RD);" onclick="doToggleStatut(${o.offre_id},'suspendue')">⏸ Suspendre</button>`
+              : o.statut === "suspendue"
+                ? `<button class="btn btn-o btn-sm" style="color:var(--GR);" onclick="doToggleStatut(${o.offre_id},'active')">▶ Remettre en ligne</button>`
+                : o.statut === "expiree"
+                  ? `<button class="btn btn-g btn-sm" onclick="doRenouveler(${o.offre_id})">↻ Renouveler</button>`
+                  : ""}
+            ${o.statut !== "archivee" ? `<button class="btn btn-o btn-sm" style="color:var(--TX3);" onclick="doToggleStatut(${o.offre_id},'archivee')">🗄 Archiver</button>` : ""}
           </div>` : ""}
       </div>`).join("");
   } catch (e) { box.innerHTML = `<div class="center muted">${e.message}</div>`; }
 }
+const OFFRE_LABEL = {
+  active: "En ligne", suspendue: "Retirée", louee: "Louée",
+  expiree: "Expirée", archivee: "Archivée",
+};
+const OFFRE_CLASS = {
+  active: "bdg-gr", suspendue: "bdg-or", louee: "bdg-gr",
+  expiree: "bdg-rd", archivee: "bdg-nt",
+};
+
+/* L'échéance en clair. Un bailleur ne doit pas avoir à soustraire une date
+   pour savoir si son annonce tient encore la semaine. */
+function echeanceOffre(o) {
+  if (o.statut === "expiree") {
+    return `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">
+      Cette annonce n'est plus visible. Renouvelez-la pour la remettre en ligne.</div>`;
+  }
+  if (o.statut === "archivee") {
+    return `<div class="card-sb" style="margin-top:6px;">Archivée${o.archivee_at ? " le " + dateFr(o.archivee_at) : ""}.</div>`;
+  }
+  if (o.statut !== "active" || o.jours_restants == null) return "";
+  const j = o.jours_restants;
+  if (j <= 7) {
+    return `<div class="card-sb" style="margin-top:6px;color:#9C4A2E;">
+      Expire dans ${Math.max(0, j)} jour${j > 1 ? "s" : ""} — renouvelez pour la garder en ligne.
+      <span class="lnk" onclick="doRenouveler(${o.offre_id})">Renouveler</span></div>`;
+  }
+  return `<div class="card-sb" style="margin-top:6px;">En ligne encore ${j} jours.</div>`;
+}
+
 async function doToggleStatut(offreId, statut) {
-  try { await api(`/offres/${offreId}/statut`, { method: "POST", body: JSON.stringify({ statut }) }); toast("Offre mise à jour.", "✅"); loadMesOffres(); }
-  catch (e) { toast(e.message, "⚠️"); }
+  // L'archivage ne se défait pas : le bailleur doit le savoir avant, pas après.
+  if (statut === "archivee" && !window.confirm(
+    "Archiver cette offre ?\n\nElle disparaîtra de la recherche définitivement. Pour reproposer ce bien, il faudra publier une nouvelle annonce.")) return;
+  try {
+    const r = await api(`/offres/${offreId}/statut`, { method: "POST", body: JSON.stringify({ statut }) });
+    toast(r.message || "Offre mise à jour.", "✅");
+    loadMesOffres();
+  } catch (e) { toast(e.message, "⚠️"); }
+}
+
+async function doRenouveler(offreId) {
+  try {
+    const r = await api(`/offres/${offreId}/renouveler`, { method: "POST" });
+    toast(r.message, "✅");
+    loadMesOffres();
+  } catch (e) { toast(e.message, "⚠️"); }
 }
 
 /* ── Abonnements (locataire → bailleur/agence) ── */
