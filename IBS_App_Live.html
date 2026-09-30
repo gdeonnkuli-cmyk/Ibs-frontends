@@ -696,7 +696,7 @@ function sRegister() {
   </div>
   <div class="fg"><label class="fl">Nom complet</label><input class="fi" id="rNom" placeholder="ex : Jean-Paul Mutombo"></div>
   <div class="fg"><label class="fl">Téléphone</label><input class="fi" id="rTel" placeholder="+243 8XX XXX XXX"></div>
-  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="rPass" type="password" placeholder="6 caractères minimum"></div>
+  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="rPass" type="password" placeholder="8 caractères minimum" minlength="8"></div>
   <div class="fg"><label class="fl">Commune</label>
     <select class="fi" id="rCommune">
       <option>Gombe</option><option>Ngaliema</option><option>Limete</option><option>Lingwala</option>
@@ -721,6 +721,7 @@ async function doRegister(role) {
   const cniR = document.getElementById("rCniR").files[0];
   const cniV = document.getElementById("rCniV").files[0];
   if (!nom || !telephone || !password) return toast("Remplissez tous les champs obligatoires.", "⚠️");
+  if (password.length < MOT_DE_PASSE_MIN) return toast(`Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.`, "⚠️");
   if (!cniR || !cniV) return toast("La CNI (recto et verso) est obligatoire.", "⚠️");
   if (role === "intermediaire" && !val("rAgrement")) return toast("Le numéro d'agrément ou RCCM est obligatoire.", "⚠️");
   setBusy("btnRegister", true);
@@ -853,7 +854,7 @@ function sReset() {
     <div class="sub">Code envoyé au <b>${tel}</b><br>Le code est valable 5 minutes.</div>
   </div>
   <div class="fg"><label class="fl">Code reçu par SMS</label><input class="fi" id="rsCode" placeholder="6 chiffres" maxlength="6" style="text-align:center;letter-spacing:6px;font-size:18px;font-weight:700;"></div>
-  <div class="fg"><label class="fl">Nouveau mot de passe</label><input class="fi" id="rsPass" type="password" placeholder="6 caractères minimum"></div>
+  <div class="fg"><label class="fl">Nouveau mot de passe</label><input class="fi" id="rsPass" type="password" placeholder="8 caractères minimum" minlength="8"></div>
   <div class="fg"><label class="fl">Confirmer</label><input class="fi" id="rsPass2" type="password" placeholder="Répétez le mot de passe"></div>
   <button class="btn btn-g" id="btnReset" onclick="doReset('${tel}')">Changer mon mot de passe</button>
   <div class="center" style="padding-top:12px;"><span class="lnk" onclick="doForgotAgain('${tel}')">Renvoyer le code</span></div>
@@ -870,7 +871,7 @@ async function doForgotAgain(telephone) {
 async function doReset(telephone) {
   const code = val("rsCode"), nouveau_password = val("rsPass"), confirmation = val("rsPass2");
   if (!code || !nouveau_password) return toast("Saisissez le code et le nouveau mot de passe.", "⚠️");
-  if (nouveau_password.length < 6) return toast("Le mot de passe doit faire au moins 6 caractères.", "⚠️");
+  if (nouveau_password.length < MOT_DE_PASSE_MIN) return toast(`Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.`, "⚠️");
   if (nouveau_password !== confirmation) return toast("Les deux mots de passe ne correspondent pas.", "⚠️");
   setBusy("btnReset", true);
   try {
@@ -3512,6 +3513,11 @@ function esc(v) {
   if (v === null || v === undefined) return "";
   return String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+// Même exigence que le serveur, vérifiée avant l'envoi : laisser partir la
+// requête pour la voir refusée ferait perdre la saisie et les pièces déjà
+// choisies. Le serveur reste l'autorité — ceci n'est qu'une politesse.
+const MOT_DE_PASSE_MIN = 8;
 
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
 /* Les colonnes DATE remontent de PostgreSQL en ISO complet : sans ça, une fin

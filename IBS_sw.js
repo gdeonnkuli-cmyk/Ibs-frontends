@@ -2,7 +2,7 @@
 // Met en cache le shell de l'app pour un chargement plus rapide et une tolérance aux coupures réseau.
 // Les appels à l'API restent toujours en direct (jamais mis en cache) : on ne veut jamais
 // afficher de fausses offres ou de faux statuts de contrat par erreur.
-const CACHE_NAME = "ibs-shell-v15";
+const CACHE_NAME = "ibs-shell-v16";
 const SHELL_FILES = ["./index.html", "./IBS_App_Live.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
